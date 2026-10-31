@@ -43,3 +43,33 @@ certs/
 
 # Stray Python packages
 *.whl
+
+
+# Large binaries (hosted on GitHub Releases, not git repo)
+*.exe
+*.dll
+*.pdb
+wwwroot/*.exe
+src/OpenEleven.Server/wwwroot/*.exe
+
+# Secret configs, tokens & keys
+bot_config.json
+*.pem
+*.key
+*.pfx
+certs/
+
+# Scratch & maintenance scripts
+update_*.py
+patch_*.py
+monitor_*.py
+check_*.py
+clean_*.py
+switch_*.py
+debug_*.py
+apply_*.py
+execute_*.py
+test_*.py
+
+# Adboard modding textures & assets
+reklamlar/

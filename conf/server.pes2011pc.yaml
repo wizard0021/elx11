@@ -1,5 +1,5 @@
 Server:
-  AdvertiseIp: "pes.example.com"   # your domain; an IP or "auto" only with Https.Enabled: false
+  AdvertiseIp: "63.178.232.241"   # AWS EC2 IP
   GameProfile: Pes2011Pc
   LogFile: "logs/pes2011pc.log"
 
@@ -11,7 +11,7 @@ Server:
     IdleTimeoutSeconds: 300
 
   Https:
-    Enabled: true                 # false = plain HTTP on port 80
+    Enabled: false                # false = plain HTTP on port 80 (avoids SSL cert check)
     CertificatePath: "certs/fullchain.pem"
     KeyPath: "certs/privkey.pem"
 
@@ -21,7 +21,7 @@ Server:
     SecretKey: ""
   Admin:
     User: admin
-    Password: ""                  # empty = admin portal off
+    Password: ""
 
   Database:
     Provider: Sqlite              # Sqlite | MySql
@@ -40,7 +40,7 @@ Server:
       Port: 28021
       MaxPlayers: 1000
     - Role: Lobby
-      Name: Open Eleven Server
+      Name: ELX11 - Evolution Legacy X 11
       Gid: 3
       Port: 28022
       MaxPlayers: 1000
@@ -61,19 +61,19 @@ Server:
       MaxPlayers: 1000
 
   Lobbies:
-    - Name: Beginner
+    - Name: ELX11 - Beginner
       MaxPlayers: 100
       Type: open
-    - Name: Standard
+    - Name: ELX11 - Standard
       MaxPlayers: 100
       Type: open
-    - Name: Expert
+    - Name: ELX11 - Expert
       MaxPlayers: 100
       Type: open
 
   Competitions:
     - Id: 1
-      Name: OpenEleven Cup
+      Name: ELX11 Legacy Cup
       Category: GOLD              # PLATINUM | GOLD | SILVER | BRONZE
       EntryStart: 2026-10-01T00:00:00Z
       EntryEnd: 2026-12-31T00:00:00Z
@@ -113,6 +113,7 @@ Server:
     PatchVersion: "1.03"
     DlcVersion: "1.07"
     EulaVersion: "1.0"
+    EulaText: "Evolution Legacy X 11 (ELX11) aims to revive what PES 2011 servers were like back then and bring back the nostalgia. By playing on this server, you agree to our fair play rules, respect fellow players, and enjoy the game. Cheating, toxic behavior, and modified game data are strictly prohibited."
     AckUnknownCommands: true
     AckBinaryPackets: true
     EnforceSessionState: true
