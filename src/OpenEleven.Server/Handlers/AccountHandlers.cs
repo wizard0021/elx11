@@ -46,18 +46,113 @@ public sealed class AccountHandlers(
     [Command("MSG_REQAUTH", Roles = AuthRoles, RequiredState = SessionState.Challenged)]
     public async ValueTask<KvMessage[]> RequestAuth(CommandContext ctx)
     {
+        var platform = ctx.Request.GetString("platform");
+        var isPs3 = string.Equals(platform, "PS3", StringComparison.OrdinalIgnoreCase);
+
         // PES 2010 sends the MD5 credential as uname; PES 2011 sends the plain game id there
         // and hashes MD5(gameId || challenge || credential) (seen in a live client run).
         var uname = ctx.Request.GetString("uname");
         var is2011 = !AuthProof.TryNormalizeMd5(uname, out var credential);
-        if ((is2011 && string.IsNullOrWhiteSpace(uname))
+        if ((!isPs3 && is2011 && string.IsNullOrWhiteSpace(uname))
             || !AuthProof.TryNormalizeMd5(ctx.Request.GetString("hash"), out var reportedHash)
             || !AuthProof.TryNormalizeMd5(ctx.Request.GetString("para_hash"), out var paraHash)
             || !AuthProof.TryNormalizeMd5(ctx.Request.GetString("entry_hash"), out var entryHash)
-            || !AuthProof.TryDecodeChallenge(ctx.Session.ChallengeCode, out _))
+            || !AuthProof.TryDecodeChallenge(ctx.Session.ChallengeCode, out var challengeBytes))
         {
             log.LogWarning("Authentication refused: malformed or incomplete proof fields");
             return [ctx.Err("MSG_AUTHRESULT", "AUTH")];
+        }
+
+        // PS3 console retail authentication (no HTTP launcher)
+        if (isPs3)
+        {
+            var expectedPs3Hash = Convert.ToHexStringLower(System.Security.Cryptography.MD5.HashData(challengeBytes));
+            if (!AuthProof.FixedTimeEquals(expectedPs3Hash, reportedHash))
+            {
+                log.LogWarning("Authentication refused: PS3 challenge proof mismatch for {RemoteAddress}", ctx.Session.Remote.Address);
+                return [ctx.Err("MSG_AUTHRESULT", "AUTH")];
+            }
+
+            Account? ps3Account = null;
+
+            // Check if there is already an active session in pendingLogins for this IP
+            var pendingList = pendingLogins.FindCandidates(ctx.Session.Remote.Address, reportedHash);
+            if (pendingList.Count > 0)
+            {
+                ps3Account = await accounts.GetByGameIdAsync(pendingList[0].GameId, ctx.CancellationToken);
+            }
+
+            if (ps3Account is null)
+            {
+                // Mapped tester check: Dr. Insano (real PS3 hardware)
+                if (entryHash == "a924d2ccac25c6832c83f9d6b62dc1d6")
+                {
+                    ps3Account = await accounts.GetByGameIdAsync("Dr.insano.0", ctx.CancellationToken);
+                }
+
+                var ps3GameId = $"ps3_{entryHash[..8]}";
+                ps3Account ??= await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
+
+                if (ps3Account is null)
+                {
+                    var (regResult, created) = await accounts.RegisterAsync(ps3GameId, reportedHash, entryHash, ctx.CancellationToken);
+                    if (regResult == RegistrationResult.Created && created is not null)
+                    {
+                        ps3Account = created;
+                        log.LogInformation("Auto-registered new PS3 account {GameId} for entry_hash {EntryHash}", ps3GameId, entryHash);
+                    }
+                    else
+                    {
+                        ps3Account = await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
+                    }
+                }
+            }
+
+            if (ps3Account is null)
+            {
+                log.LogWarning("Authentication refused: could not resolve account for PS3 {RemoteAddress}", ctx.Session.Remote.Address);
+                return [ctx.Err("MSG_AUTHRESULT", "NOACCOUNT")];
+            }
+
+            if (ps3Account.Banned)
+            {
+                log.LogWarning("Banned PS3 account {GameId} tried to authenticate", ps3Account.GameId);
+                return [ctx.Err("MSG_AUTHRESULT", "BANNED")];
+            }
+
+            var presentedSerial = ctx.Request.GetString("tmpRegcode")?.Trim() ?? "***";
+
+            // Maintain pending login across Account -> Menu -> Lobby
+            pendingLogins.Add(ps3Account, reportedHash, ctx.Session.Remote.Address);
+
+            ctx.Session.Platform = "PS3";
+            ctx.Session.AccountId = ps3Account.Id;
+            ctx.Session.GameId = ps3Account.GameId;
+            ctx.Session.AuthHash = reportedHash;
+            ctx.Session.ParaHash = paraHash;
+            ctx.Session.EntryHash = entryHash;
+            ctx.Session.RegCode = presentedSerial;
+
+            if (ctx.Request.GetString("szPatchVersion") is { Length: > 0 and <= 16 } ps3Patch)
+                ps3Account.PatchVersion = ps3Patch;
+            if (ctx.Request.GetString("szDLContentsVersion") is { Length: > 0 and <= 16 } ps3Dlc)
+                ps3Account.DlcVersion = ctx.Session.DlcVersion = ps3Dlc;
+
+            ctx.Session.FirstLogin = ps3Account.FirstLogin;
+            if (ps3Account.FirstLogin)
+            {
+                await accounts.ClaimFirstLoginAsync(ps3Account.Id, ctx.CancellationToken);
+            }
+            ctx.Session.State = SessionState.Authenticated;
+            await accounts.TouchLoginAsync(ps3Account.Id, "PS3", ctx.CancellationToken);
+
+            log.LogInformation("PS3 Account {GameId} authenticated successfully from {RemoteAddress}", ps3Account.GameId, ctx.Session.Remote.Address);
+
+            return
+            [
+                ctx.Ok(),
+                ctx.Ok("MSG_AUTHRESULT").Set("first_login", ctx.Session.FirstLogin),
+            ];
         }
 
         // para_hash and entry_hash are client fingerprints whose source digest is not
@@ -127,6 +222,7 @@ public sealed class AccountHandlers(
         // HTTP grant deadline.
         pendingLogins.Refresh(pendingLogin);
 
+        ctx.Session.Platform = "PC";
         ctx.Session.AccountId = account.Id;
         ctx.Session.GameId = account.GameId;
         ctx.Session.AuthHash = reportedHash;
@@ -143,7 +239,7 @@ public sealed class AccountHandlers(
             token => accounts.ClaimFirstLoginAsync(account.Id, token),
             ctx.CancellationToken);
         ctx.Session.State = SessionState.Authenticated;
-        await accounts.TouchLoginAsync(account.Id, ctx.CancellationToken);
+        await accounts.TouchLoginAsync(account.Id, "PC", ctx.CancellationToken);
 
         log.LogInformation("Account {GameId} authenticated with a valid serial", account.GameId);
 
@@ -190,18 +286,20 @@ public sealed class AccountHandlers(
             if (player is null)
                 return [ctx.Fail("ERR_DATABASE")];
 
-            var teams = await players.GetRecentTeamsAsync(player.Pid, 5, ctx.CancellationToken);
+            // pes2011.exe maps div through D5|D4|D3|D2|D1|NONE (table 0x16) and stores -1 for
+            // the PES 2010 value "D3C", which the player-info screen then trips over.
+            var is2011 = options.CurrentValue.GameProfile == GameProfile.Pes2011Pc;
+            var division = options.CurrentValue.GameProfile == GameProfile.Pes2010Pc
+                ? RankSystem.Pes2010DivisionName(player.Division)
+                : RankSystem.Applies(options.CurrentValue.GameProfile)
+                   && player.Division is not ("D5" or "D4" or "D3" or "D2" or "D1" or "NONE")
+                    ? "D5"
+                    : null;
 
-            // Competitions entered, one line per kind: the competition menu totals them. Nothing records
-            // the knockout rounds or the prizes yet, so those stay 0.
-            var competitions = (await players.GetCompetitionEntriesAsync(player.Pid, ctx.CancellationToken))
-                .GroupBy(e => e.Kind)
-                .Select(g => new KvMessage().Set("compe_name", g.Last().Name).Set("compe_kind", g.Key).Set("mode", "NORMAL")
-                    .Set("prize_num", 0).Set("playoff_num", 0).Set("join_num", g.Count()))
-                .ToList();
-            var reply = PlayerPresenter.FillPlayerInfo(ctx.Ok(), player, ctx.Profile,
-                listSyntax: true, teams, competitions);
-            if (ctx.Profile.IsModern())
+            var teams = await players.GetRecentTeamsAsync(player.Pid, 5, ctx.CancellationToken);
+            var reply = PlayerPresenter.FillPlayerInfo(ctx.Ok(), player, division,
+                listSyntax: options.CurrentValue.GameProfile is GameProfile.Pes2010Pc or GameProfile.Pes2011Pc, teams);
+            if (is2011)
             {
                 // Profile page 2 "Weekly Ranking TOP 10 / TOP 100": weeks finished in that range.
                 // Page 4 (Legends) "Matches": Legends rooms played; its combos are total/max_combination.
@@ -253,7 +351,9 @@ public sealed class AccountHandlers(
             var profile = options.CurrentValue.GameProfile;
             var (result, player) = await players.CreateForAccountAsync(
                 ctx.Session.AccountId, name, normalizedName, language,
-                options.CurrentValue.Rank.StartRating, ctx.CancellationToken);
+                options.CurrentValue.Rank.StartRating,
+                RankSystem.Applies(profile) ? RankSystem.Divisions[0] : "D3C",
+                ctx.CancellationToken);
 
             if (result != PlayerCreateResult.Created || player is null)
                 return [ctx.Fail("ERR_ALREADYEXISTS")];
@@ -335,14 +435,12 @@ public sealed class AccountHandlers(
         // A fresh profile starts at the rank system's start rating, in D5.
         if (RankSystem.Applies(options.CurrentValue.GameProfile))
         {
-            RankSystem.Normalize(player, options.CurrentValue.Rank);
+            RankSystem.Normalize(player, options.CurrentValue.Rank, options.CurrentValue.GameProfile);
             await players.SaveAsync(ctx.CancellationToken);
         }
 
         ctx.Session.Pid = player.Pid;
         ctx.Session.PlayerName = player.Name;
-        ctx.Session.Card = new PlayerCard(RankSystem.Label(player.Division, ctx.Profile),
-            player.Rating, player.Lang, player.SelfReportLevel, player.PositionWant);
         ctx.Session.DesiredPositionMask = player.DesiredPositionMask;
         ctx.Session.ChatEnabled = player.ChatEnabled;
         ctx.Session.State = SessionState.PlayerSelected;
@@ -358,49 +456,17 @@ public sealed class AccountHandlers(
             reply.Set("useable_team_id", new KvArray(teams.Cast<object?>().ToArray()));
 
         var (mailCount, newMail) = await MailHandlers.InboxStateAsync(db, player.Pid, ctx.CancellationToken);
-        reply
-            .Set("mailcount", mailCount)
-            .Set("newmail", newMail)
-            .Set("chat_probi", false)
-            .Set("camera_probi", false)
-            .Set("voice_probi", false)
-            .Set("band_probi", false)
-            .Set("first_login", ctx.Session.FirstLogin);
-
-        // pes2012.exe (FUN_0053ed70) reads this reply all or nothing: one missing key and it skips
-        // the team list too, so both clients forfeit at Start Match. The match grades the link as
-        // the worse of ping and loss (FUN_010f6a90) and abandons with reason DEGRADE below red.
-        // Loss is divided by 100 and the game's own defaults are 0.5/1.0/1.5 (0 = use them).
-        // Green and yellow only pick the input delay (green/yellow/red_delay); red is the cut-off,
-        // so it is set as far as it goes (ping is a ushort, loss a percentage) and a slow link
-        // plays with more delay instead of being dropped. The grade also falls one step per 3 s
-        // without a packet from the peer (FUN_010f5380); no setting reaches that. Band is not
-        // part of the grade and defaults to 0 in the client. The kickoff keys use the client's own
-        // fallbacks: delay_frame_2/4players 4/6 and max_input_delay_frames 90 (FUN_00e79130),
-        // check_lobbygame_ping_diff 100000 and check_game_ping_max 100001 (FUN_010ee430/410);
-        // ntlserver's 2/4/8/200/500 were in place when matches froze on the pitch at kickoff. P2P timeout,
-        // lossframe_match and the grade delays come from ntlserver's ntl.yaml.
-        // ponytail: fixed tuning, move to ServerOptions if anyone needs to adjust it.
-        if (options.CurrentValue.GameProfile.IsSince2012())
+        return
+        [
             reply
-                .Set("green_ping", 100).Set("green_band", 0).Set("green_loss", 50)
-                .Set("yellow_ping", 200).Set("yellow_band", 0).Set("yellow_loss", 100)
-                .Set("red_ping", 65535).Set("red_band", 0).Set("red_loss", 10000)
-                .Set("green_delay", 2).Set("yellow_delay", 4).Set("red_delay", 6)
-                .Set("p2ptimeout", 30000)
-                .Set("lossframe_match", 30)
-                .Set("avg_max_combination", 0)
-                .Set("avg_total_combination", 0)
-                .Set("invite_num", 8)
-                .Set("check_lobbygame_ping_diff", 100000)
-                .Set("check_game_ping_max", 100001)
-                .Set("mcount10flg", false)
-                .Set("delay_frame_2players", 4)
-                .Set("delay_frame_4players", 6)
-                .Set("max_input_delay_frames", 90)
-                .Set("proto_opt", "0");
-
-        return [reply];
+                .Set("mailcount", mailCount)
+                .Set("newmail", newMail)
+                .Set("chat_probi", false)
+                .Set("camera_probi", false)
+                .Set("voice_probi", false)
+                .Set("band_probi", false)
+                .Set("first_login", ctx.Session.FirstLogin),
+        ];
     }
 
     /// <summary>
@@ -452,38 +518,6 @@ public sealed class AccountHandlers(
             "Profile saved for pid {Pid}: country={Country} team={Team} intro='{Intro}'",
             player.Pid, player.Country, player.FavoriteTeam, player.Intro);
 
-        return [ctx.Ok()];
-    }
-
-    /// <summary>
-    /// The player's saved game plan (reply parsed by FUN_0052a680): <c>gameplan_data_size</c> bytes,
-    /// sent as the hex string <c>gameplan_data</c>. A size of 0 puts the client in its error
-    /// state, and so does ERR_DATANOTFOUND (seen in the client), so a player who has saved nothing
-    /// gets the default plan.
-    /// </summary>
-    [Command("CMD_GET_GAMEPLAN", Roles = ServiceRole.Menu, Profiles = GameProfiles.Modern)]
-    public async ValueTask<KvMessage[]> GetGamePlan(CommandContext ctx)
-    {
-        var player = await players.GetAsync(ctx.Request.GetInt32("pid", ctx.Session.Pid), ctx.CancellationToken);
-        if (player is null)
-            return [ctx.Fail("ERR_DATANOTFOUND")];
-
-        var plan = player.GamePlan.Length > 0 ? player.GamePlan : DefaultGamePlan.Hex;
-        return [ctx.Ok().Set("gameplan_data_size", plan.Length / 2).Set("gameplan_data", plan)];
-    }
-
-    /// <summary>Saves the game plan block as the client sent it (a hex string of gameplan_data_size bytes).</summary>
-    [Command("CMD_SET_GAMEPLAN", Roles = ServiceRole.Menu, Profiles = GameProfiles.Modern)]
-    public async ValueTask<KvMessage[]> SetGamePlan(CommandContext ctx)
-    {
-        var size = ctx.Request.GetInt32("gameplan_data_size", 0);
-        var data = ctx.Request.GetString("gameplan_data") ?? "";
-        if (size <= 0 || data.Length != size * 2 || data.Length > 4096 || !data.All(Uri.IsHexDigit)
-            || await players.GetAsync(ctx.Session.Pid, ctx.CancellationToken) is not { } player)
-            return [ctx.Fail("ERR_DATABASE")];
-
-        player.GamePlan = data;
-        await players.SaveAsync(ctx.CancellationToken);
         return [ctx.Ok()];
     }
 

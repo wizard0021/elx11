@@ -21,14 +21,6 @@ public sealed class GameDbContext(DbContextOptions<GameDbContext> options) : DbC
     public DbSet<ShortMail> ShortMails => Set<ShortMail>();
     public DbSet<WeeklyRankingEntry> WeeklyRankings => Set<WeeklyRankingEntry>();
     public DbSet<ServerSetting> Settings => Set<ServerSetting>();
-    public DbSet<PlayerAvatar> Avatars => Set<PlayerAvatar>();
-    public DbSet<Community> Communities => Set<Community>();
-    public DbSet<CommunityMember> CommunityMembers => Set<CommunityMember>();
-    public DbSet<CommunityLeague> CommunityLeagues => Set<CommunityLeague>();
-    public DbSet<CommunityLeagueMember> CommunityLeagueMembers => Set<CommunityLeagueMember>();
-    public DbSet<CommunityLeagueCell> CommunityLeagueCells => Set<CommunityLeagueCell>();
-    public DbSet<CommunityLeagueMatch> CommunityLeagueMatches => Set<CommunityLeagueMatch>();
-    public DbSet<CompetitionEntry> CompetitionEntries => Set<CompetitionEntry>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -52,8 +44,6 @@ public sealed class GameDbContext(DbContextOptions<GameDbContext> options) : DbC
             e.HasIndex(x => x.Name).IsUnique();
             e.HasIndex(x => x.NormalizedName).IsUnique();
             e.HasIndex(x => x.AccountId).IsUnique();
-            // DivisionIndex, not Division: databases before this held the name in a text column of that name.
-            e.Property(x => x.Division).HasColumnName("DivisionIndex");
             e.HasOne(x => x.Stats)
                 .WithOne()
                 .HasForeignKey<PlayerStats>(x => x.PlayerId)
@@ -68,7 +58,6 @@ public sealed class GameDbContext(DbContextOptions<GameDbContext> options) : DbC
             e.HasIndex(x => x.HomePid);
             e.HasIndex(x => x.AwayPid);
             e.HasIndex(x => x.PlayedAt);
-            e.HasIndex(x => x.CompeId);
         });
 
         b.Entity<InformationItem>(e => e.HasKey(x => x.Id));
@@ -102,53 +91,8 @@ public sealed class GameDbContext(DbContextOptions<GameDbContext> options) : DbC
         {
             e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.WeekStart, x.Rank });
-            e.Property(x => x.Division).HasColumnName("DivisionIndex");
         });
 
         b.Entity<ServerSetting>(e => e.HasKey(x => x.Key));
-        b.Entity<PlayerAvatar>(e =>
-        {
-            e.HasKey(x => x.Pid);
-            e.Property(x => x.Pid).ValueGeneratedNever();
-        });
-
-        b.Entity<Community>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => x.OwnerPid);
-        });
-
-        b.Entity<CommunityLeague>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => x.CommuId);
-        });
-
-        b.Entity<CommunityLeagueMember>(e => e.HasKey(x => new { x.CompeId, x.Pid }));
-
-        b.Entity<CommunityLeagueMatch>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => x.CompeId);
-        });
-
-        b.Entity<CompetitionEntry>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => new { x.Pid, x.CompeId }).IsUnique();
-        });
-
-        b.Entity<CommunityLeagueCell>(e =>
-        {
-            e.HasKey(x => x.Id);
-            e.HasIndex(x => x.CompeId);
-        });
-
-        // No foreign keys: a deleted player's rows are skipped by the joins instead of cascading.
-        b.Entity<CommunityMember>(e =>
-        {
-            e.HasKey(x => new { x.CommuId, x.Pid });
-            e.HasIndex(x => x.Pid);
-        });
     }
 }
