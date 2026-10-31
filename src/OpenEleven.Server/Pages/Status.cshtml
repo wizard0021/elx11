@@ -1,0 +1,138 @@
+@page "/status"
+@model StatusModel
+@{
+    ViewData["Title"] = "System Status";
+    ViewData["Nav"] = "status";
+    ViewData["Live"] = true;
+    var uptimeStr = Model.Uptime.TotalDays >= 1
+        ? $"{(int)Model.Uptime.TotalDays}d {Model.Uptime.Hours}h {Model.Uptime.Minutes}m"
+        : $"{(int)Model.Uptime.TotalHours}h {Model.Uptime.Minutes}m {Model.Uptime.Seconds}s";
+}
+<div id="status-content" data-live>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+        <div>
+            <h1 class="title" style="margin-bottom: 4px;">System & API Status</h1>
+            <p class="muted">Live health telemetry and port monitoring for ELX11 game servers and APIs.</p>
+        </div>
+        <div>
+            @if (Model.AllHealthy)
+            {
+                <span class="tag lime" style="font-size: 14px; padding: 6px 14px; font-weight: bold;">
+                    <span class="online"></span> All Systems Operational
+                </span>
+            }
+            else
+            {
+                <span class="tag red" style="font-size: 14px; padding: 6px 14px; font-weight: bold;">
+                    <span class="offline-dot"></span> System Degradation Detected
+                </span>
+            }
+        </div>
+    </div>
+
+    <div class="tiles" style="margin-bottom: 24px;">
+        <div class="tile selected">
+            <strong>@uptimeStr</strong>
+            <span>Server Uptime</span>
+        </div>
+        <div class="tile">
+            <strong>@Model.MemoryMb MB</strong>
+            <span>Process RAM</span>
+        </div>
+        <div class="tile">
+            <strong>@Model.ActiveConnections</strong>
+            <span>Online In-Game</span>
+        </div>
+        <div class="tile">
+            <strong>@Model.ActiveRooms</strong>
+            <span>Active Rooms</span>
+        </div>
+        <div class="tile">
+            <strong>@Model.TotalAccounts</strong>
+            <span>Accounts</span>
+        </div>
+    </div>
+
+    <section class="panel" style="margin-bottom: 24px;">
+        <header>Game Services & APIs (@Model.Services.Count)</header>
+        <div class="scroll">
+            <table class="list">
+                <thead>
+                    <tr>
+                        <th>Service / Subsystem</th>
+                        <th>Role</th>
+                        <th>Port / Protocol</th>
+                        <th>Description</th>
+                        <th class="num">Health Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var s in Model.Services)
+                {
+                    <tr>
+                        <td><strong>@s.Name</strong></td>
+                        <td><span class="tag cyan">@s.Role</span></td>
+                        <td><code>@s.Port / @s.Protocol</code></td>
+                        <td class="muted" style="max-width: 380px; font-size: 13px; line-height: 1.4;">@s.Description</td>
+                        <td class="num">
+                            @if (s.IsHealthy)
+                            {
+                                <span class="tag lime" style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="online"></span> Operational
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="tag red" style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <span class="offline-dot"></span> Down
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="grid two">
+        <section class="panel">
+            <h2>Database Engine</h2>
+            <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <span>SQLite Engine (Data Source: pes2011pc.db)</span>
+                @if (Model.DatabaseHealthy)
+                {
+                    <span class="tag lime"><span class="online"></span> Connected</span>
+                }
+                else
+                {
+                    <span class="tag red"><span class="offline-dot"></span> Error</span>
+                }
+            </div>
+            <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <span class="muted">Total Registered Accounts</span>
+                <strong>@Model.TotalAccounts</strong>
+            </div>
+            <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span class="muted">Total Completed Matches</span>
+                <strong>@Model.TotalMatches</strong>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Networking & Security</h2>
+            <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <span>Cloudflare Proxy & WAF Protection</span>
+                <span class="tag lime"><span class="online"></span> Active</span>
+            </div>
+            <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                <span>SSL / TLS Encryption</span>
+                <span class="tag lime"><span class="online"></span> Flexible (Edge HTTPS)</span>
+            </div>
+            <div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <span>STUN / P2P Matchmaking Port Range</span>
+                <code>UDP 5730 - 5745</code>
+            </div>
+        </section>
+    </div>
+</div>

@@ -1,0 +1,71 @@
+@page "/admin/billboards"
+@model OpenEleven.Server.Pages.Admin.BillboardsModel
+@{
+    ViewData["Title"] = "Billboards & Ads";
+    ViewData["Nav"] = "admin-billboards";
+}
+<h1 class="title">Stadium Billboards & Ads</h1>
+<p class="muted" style="margin-bottom: 20px;">
+    In-game dynamic stadium hoardings powered by Massive Ad Server emulator. Images uploaded here stream live to PES 2011 pitch-side billboards during matches.
+</p>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <p class="msg ok" role="status">@Model.Message</p>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <p class="msg error" role="alert">@Model.Error</p>
+}
+
+<section class="panel" style="margin-bottom: 24px;">
+    <h2>Upload New Billboard</h2>
+    <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <input type="file" name="file" accept=".png,.jpg,.jpeg,.bmp,.dds" required style="padding: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff;" />
+        <button type="submit" class="button">Upload Adboard</button>
+        <span class="muted" style="font-size: 13px;">Recommended: <strong>512 &times; 128 PNG</strong></span>
+    </form>
+</section>
+
+<section class="panel">
+    <header>Active Billboard Textures (@Model.Items.Count)</header>
+    @if (Model.Items.Count == 0)
+    {
+        <p class="empty">No billboard images found in reklamlar/ folder.</p>
+    }
+    else
+    {
+        <div class="scroll">
+            <table class="list">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;">Preview</th>
+                        <th>File Name</th>
+                        <th>Resolution</th>
+                        <th>File Size</th>
+                        <th class="num">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            <img src="@item.Url" alt="@item.Name" style="max-height: 48px; max-width: 140px; object-fit: contain; background: #000; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); display: block;" />
+                        </td>
+                        <td><strong>@item.Name</strong></td>
+                        <td><span class="tag cyan">@item.Width &times; @item.Height</span></td>
+                        <td class="muted">@(item.SizeBytes / 1024) KB</td>
+                        <td class="num">
+                            <form method="post" asp-page-handler="Delete" style="display: inline;" onsubmit="return confirm('Delete @item.Name?');">
+                                <input type="hidden" name="fileName" value="@item.Name" />
+                                <button type="submit" class="button hollow danger" style="padding: 4px 10px; font-size: 12px;">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

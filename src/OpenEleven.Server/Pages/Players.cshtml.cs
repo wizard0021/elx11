@@ -26,13 +26,14 @@ public sealed class PlayersModel(GameDbContext db, Hub hub, GameProfile game) : 
 
     public bool Ranked => RankSystem.Applies(game);
     public IReadOnlyList<Player> List { get; private set; } = [];
+    public IReadOnlyList<Account> PendingAccounts { get; private set; } = [];
     public HashSet<int> Online { get; private set; } = [];
     public Pager Pager { get; private set; } = new(1, 1, _ => "");
 
     public async Task OnGetAsync(CancellationToken ct)
     {
         Online = SiteData.OnlinePids(hub);
-        var query = db.Players.Include(p => p.Stats).AsQueryable();
+        var query = db.Players.Include(p => p.Stats).Include(p => p.Account).AsQueryable();
         if (!string.IsNullOrWhiteSpace(Q))
         {
             var term = Q.Trim().ToUpperInvariant();
@@ -42,7 +43,8 @@ public sealed class PlayersModel(GameDbContext db, Hub hub, GameProfile game) : 
         }
 
         var online = Online.ToList();
-        var pages = Pager.Count(await query.CountAsync(ct), SiteData.PageSize);
+        var totalCount = await query.CountAsync(ct);
+        var pages = Pager.Count(totalCount, SiteData.PageSize);
         PageNumber = Math.Clamp(PageNumber, 1, pages);
         List = await query
             .OrderByDescending(p => online.Contains(p.Pid))
@@ -50,6 +52,16 @@ public sealed class PlayersModel(GameDbContext db, Hub hub, GameProfile game) : 
             .ThenBy(p => p.Name)
             .Skip((PageNumber - 1) * SiteData.PageSize).Take(SiteData.PageSize)
             .ToListAsync(ct);
+
+        var existingAccountIds = await db.Players.Select(p => p.AccountId).ToListAsync(ct);
+        var accQuery = db.Accounts.Where(a => !existingAccountIds.Contains(a.Id));
+        if (!string.IsNullOrWhiteSpace(Q))
+        {
+            var term = Q.Trim().ToLower();
+            accQuery = accQuery.Where(a => a.GameId.ToLower().Contains(term));
+        }
+        PendingAccounts = await accQuery.OrderByDescending(a => a.CreatedAt).Take(20).ToListAsync(ct);
+
         var q = string.IsNullOrWhiteSpace(Q) ? "" : $"q={Uri.EscapeDataString(Q.Trim())}&";
         Pager = new Pager(PageNumber, pages, n => $"/players?{q}p={n}");
     }

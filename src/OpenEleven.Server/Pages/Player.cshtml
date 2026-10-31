@@ -1,51 +1,105 @@
-@page "/players/{pid:int}"
+@page "/players/{id}"
 @model PlayerModel
 @{
-    var p = Model.Profile;
-    var s = p.Stats;
-    ViewData["Title"] = p.Name;
+    var name = Model.DisplayName;
+    ViewData["Title"] = name;
     ViewData["Nav"] = "players";
 }
 <div class="profile-head">
-    <h1 class="title">@p.Name</h1>
-    @if (Model.Ranked) { <span class="div @p.Division">@p.Division</span> }
-    @if (Model.IsOnline) { <span class="tag lime"><span class="online"></span>Online</span> }
-    <span class="muted">
+    <div class="profile-title-row" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <h1 class="title" style="margin-bottom: 0;">@name</h1>
+        <div class="platform-badges" style="display: inline-flex; align-items: center; gap: 6px;">
+            @{
+                var platforms = Model.Account?.Platforms ?? Model.Profile?.Account?.Platforms ?? "PC";
+            }
+            @if (platforms.Contains("PC", StringComparison.OrdinalIgnoreCase))
+            {
+                <img src="/img/pc.png" alt="PC" title="PC Platform" class="platform-icon lg" />
+            }
+            @if (platforms.Contains("PS3", StringComparison.OrdinalIgnoreCase))
+            {
+                <img src="/img/ps3_white.png" alt="PS3" title="PlayStation 3 Platform" class="platform-icon lg" />
+            }
+        </div>
+        @if (Model.Profile is { } prof && Model.Ranked)
+        {
+            <span class="div @prof.Division">@prof.Division</span>
+        }
+        @if (Model.IsOnline)
+        {
+            <span class="tag lime"><span class="online"></span>Online Now</span>
+        }
+        else
+        {
+            <span class="tag muted" style="border-color: rgba(255,255,255,.15);"><span class="offline-dot"></span>Offline (@Model.LastSeenText)</span>
+        }
+    </div>
+    <span class="muted" style="display: block; margin-top: 6px;">
         Member since @Model.MemberSince.ToString("yyyy-MM-dd")
-        @if (p.LastPlayedAt is { } at) { <text>&middot; last played @SiteData.Date(at) UTC</text> }
+        @if (Model.Profile?.LastPlayedAt is { } at)
+        {
+            <text>&middot; Last played: @SiteData.TimeAgo(at) (@SiteData.Date(at) UTC)</text>
+        }
     </span>
 </div>
 
-<section class="panel">
-    <div class="stats">
-        @if (Model.Ranked)
+@if (Model.Profile is { } p)
+{
+    var s = p.Stats;
+    <section class="panel">
+        <div class="stats">
+            @if (Model.Ranked)
+            {
+                <div class="stat"><strong>@p.Rating</strong><span>Rating</span></div>
+                <div class="stat"><strong>@(p.Rank > 0 ? $"#{p.Rank}" : "Unranked")</strong><span>Rank Position</span></div>
+                <div class="stat"><strong>@p.Point</strong><span>Points</span></div>
+                <div class="stat"><strong>@p.SeasonPoints</strong><span>Season pts</span></div>
+                <div class="stat"><strong>@p.WeeklyPoints</strong><span>Week pts</span></div>
+            }
+            <div class="stat"><strong>@s.MatchCount</strong><span>Matches</span></div>
+            <div class="stat"><strong>@s.WinCount</strong><span>Wins</span></div>
+            <div class="stat"><strong>@s.DrawCount</strong><span>Draws</span></div>
+            <div class="stat"><strong>@s.LoseCount</strong><span>Losses</span></div>
+            <div class="stat"><strong>@SiteData.WinPercent(s.WinCount, s.MatchCount)</strong><span>Win %</span></div>
+            <div class="stat"><strong>@s.Goals</strong><span>Goals for</span></div>
+            <div class="stat"><strong>@s.GoalsAgainst</strong><span>Goals against</span></div>
+            <div class="stat"><strong>@s.ContinuousWins</strong><span>Win streak</span></div>
+            <div class="stat"><strong>@s.MaxContinuousWins</strong><span>Best streak</span></div>
+            <div class="stat"><strong>@s.DisconnectCount</strong><span>Disconnects</span></div>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(p.Intro))
         {
-            <div class="stat"><strong>@p.Rating</strong><span>Rating</span></div>
-            <div class="stat"><strong>@(p.Rank > 0 ? $"#{p.Rank}" : "–")</strong><span>Rank</span></div>
-            <div class="stat"><strong>@p.Point</strong><span>Points</span></div>
-            <div class="stat"><strong>@p.SeasonPoints</strong><span>Season pts</span></div>
-            <div class="stat"><strong>@p.WeeklyPoints</strong><span>Week pts</span></div>
+            <p class="intro">&ldquo;@p.Intro&rdquo;</p>
         }
-        <div class="stat"><strong>@s.MatchCount</strong><span>Matches</span></div>
-        <div class="stat"><strong>@s.WinCount</strong><span>Wins</span></div>
-        <div class="stat"><strong>@s.DrawCount</strong><span>Draws</span></div>
-        <div class="stat"><strong>@s.LoseCount</strong><span>Losses</span></div>
-        <div class="stat"><strong>@SiteData.WinPercent(s.WinCount, s.MatchCount)</strong><span>Win %</span></div>
-        <div class="stat"><strong>@s.Goals</strong><span>Goals for</span></div>
-        <div class="stat"><strong>@s.GoalsAgainst</strong><span>Goals against</span></div>
-        <div class="stat"><strong>@s.ContinuousWins</strong><span>Win streak</span></div>
-        <div class="stat"><strong>@s.MaxContinuousWins</strong><span>Best streak</span></div>
-        <div class="stat"><strong>@s.DisconnectCount</strong><span>Disconnects</span></div>
-    </div>
-    @if (!string.IsNullOrWhiteSpace(p.Intro))
-    {
-        <p class="intro">&ldquo;@p.Intro&rdquo;</p>
-    }
-</section>
+    </section>
 
-<hr class="rule">
+    <hr class="rule">
 
-<section class="panel">
-    <h2>Recent matches</h2>
-    <partial name="_Matches" model="Model.Recent" />
-</section>
+    <section class="panel">
+        <h2>Recent matches</h2>
+        @if (Model.Recent.Count == 0)
+        {
+            <p class="empty" style="padding: 16px;">No matches played yet.</p>
+        }
+        else
+        {
+            <partial name="_Matches" model="Model.Recent" />
+        }
+    </section>
+}
+else
+{
+    <section class="panel" style="margin-top: 18px;">
+        <div class="body" style="padding: 32px 20px; text-align: center;">
+            <div style="font-size: 44px; margin-bottom: 12px;">⚽</div>
+            <h2 style="margin-bottom: 10px; font-size: 20px;">ELX11 Account Active!</h2>
+            <p class="muted" style="max-width: 520px; margin: 0 auto 20px; font-size: 14px; line-height: 1.6;">
+                The account <strong>@name</strong> has been successfully registered. Once you log in to the PES 2011 game client with this Game ID and confirm your player name, your division rank, win rates, goal stats, and match history will be displayed here automatically.
+            </p>
+            <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                <span class="tag lime">Account Status: Active</span>
+                <span class="tag">First In-Game Login: Pending</span>
+            </div>
+        </div>
+    </section>
+}

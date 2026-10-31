@@ -22,7 +22,7 @@
 {
     <nav class="tabs" aria-label="Division">
         <a href="@RankingsModel.Link(Model.Sort, Model.Week, null)" aria-current="@On(Model.Division is null)">All divisions</a>
-        @foreach (var d in Enum.GetNames<OpenEleven.Data.Entities.Division>().Reverse())
+        @foreach (var d in Enumerable.Reverse(RankSystem.Divisions))
         {
             <a href="@RankingsModel.Link(Model.Sort, Model.Week, d)" aria-current="@On(d == Model.Division)">@d</a>
         }
@@ -52,7 +52,19 @@
                     var l = Model.Lines[i];
                     <tr>
                         <td class="num muted">@(Model.First + i + 1)</td>
-                        <td>@if (Model.Online.Contains(l.Pid)) { <span class="online" title="Online"></span> }<a href="/players/@l.Pid">@l.Name</a></td>
+                        <td>
+                            @if (Model.Online.Contains(l.Pid)) { <span class="online" title="Online"></span> }<a href="/players/@l.Pid">@l.Name</a>
+                            <span class="platform-badges">
+                                @if (l.Platforms.Contains("PC", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/pc.png" alt="PC" title="PC" class="platform-icon" />
+                                }
+                                @if (l.Platforms.Contains("PS3", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/ps3_white.png" alt="PS3" title="PS3" class="platform-icon" />
+                                }
+                            </span>
+                        </td>
                         @if (Model.Ranked)
                         {
                             <td><span class="div @l.Division">@l.Division</span></td>

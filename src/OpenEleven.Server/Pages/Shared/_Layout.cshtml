@@ -12,7 +12,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@(ViewData["Title"] is string page ? $"{page} · Open Eleven {title}" : $"Open Eleven · {title} online")</title>
+    <title>@(ViewData["Title"] is string page ? $"{page} · ELX11 {title}" : $"ELX11 · Evolution Legacy X 11 · {title} online")</title>
     @* The version hash changes the URL whenever the file does, so no browser keeps an old copy. *@
     <link rel="stylesheet" href="/css/site.css" asp-append-version="true">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" asp-append-version="true"></head>
@@ -22,8 +22,7 @@
         @* On phones the nav folds into a native popover behind this button; no script. *@
         <button type="button" class="burger" popovertarget="menu" aria-label="Menu"></button>
         <a class="brand" href="/">
-            <span class="emblem" aria-hidden="true"></span>
-            <span><b>@name[0] <em>@name.ElementAtOrDefault(1)</em> <span class="oe">Open Eleven</span></b><small>Unofficial online server @name.ElementAtOrDefault(2)</small></span>
+            <img src="/img/logoalternative_crop.png" alt="ELX11 - Evolution Legacy X 11" class="brand-logo" />
         </a>
         <nav class="nav" id="menu" popover>
             @if (admin)
@@ -43,6 +42,8 @@
                 <a href="/rankings" aria-current="@Current("rankings")">Rankings</a>
                 <a href="/players" aria-current="@Current("players")">Players</a>
                 <a href="/matches" aria-current="@Current("matches")">Matches</a>
+                <a href="/survey" aria-current="@Current("survey")">Hardware Survey</a>
+                <a href="/#roadmap">Roadmap</a>
                 <a href="/register" aria-current="@Current("register")">Register</a>
             }
         </nav>
@@ -53,8 +54,10 @@
 </main>
 <footer class="bottombar">
     <div class="inner">
-        <span>Open Eleven &middot; a fan-run server for @title, not affiliated with Konami</span>
+        <span>ELX11 (Evolution Legacy X 11) &middot; a fan-run community server for @title &middot; Powered by OpenEleven</span>
         <span class="hints">
+            <a href="/survey"><i class="dot blue"></i>Hardware Survey</a>
+            <a href="/#roadmap"><i class="dot yellow"></i>Roadmap</a>
             <a href="/register"><i class="dot green"></i>Create account</a>
             <a href="#"><i class="dot red"></i>Back to top</a>
         </span>

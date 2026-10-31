@@ -14,7 +14,7 @@
 <section class="panel">
     @if (Model.List.Count == 0)
     {
-        <p class="empty">@(string.IsNullOrWhiteSpace(Model.Q) ? "No players yet." : "No player matches that name.")</p>
+        <p class="empty" style="padding: 16px;">@(string.IsNullOrWhiteSpace(Model.Q) ? "No active in-game players yet." : "No player matches that name.")</p>
     }
     else
     {
@@ -31,7 +31,22 @@
                 @foreach (var p in Model.List)
                 {
                     <tr>
-                        <td>@if (Model.Online.Contains(p.Pid)) { <span class="online" title="Online"></span> }<a href="/players/@p.Pid">@p.Name</a></td>
+                        <td>
+                            @if (Model.Online.Contains(p.Pid)) { <span class="online" title="Online"></span> }<a href="/players/@p.Pid">@p.Name</a>
+                            <span class="platform-badges">
+                                @{
+                                    var plat = p.Account?.Platforms ?? "PC";
+                                }
+                                @if (plat.Contains("PC", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/pc.png" alt="PC" title="PC" class="platform-icon" />
+                                }
+                                @if (plat.Contains("PS3", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/ps3_white.png" alt="PS3" title="PS3" class="platform-icon" />
+                                }
+                            </span>
+                        </td>
                         @if (Model.Ranked)
                         {
                             <td><span class="div @p.Division">@p.Division</span></td>
@@ -48,4 +63,46 @@
         </div>
     }
 </section>
+
+@if (Model.PendingAccounts.Count > 0)
+{
+    <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 24px 0 10px;">Registered Members</h3>
+    <section class="panel">
+        <div class="scroll">
+            <table class="list">
+                <thead>
+                <tr>
+                    <th>Game ID</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var acc in Model.PendingAccounts)
+                {
+                    <tr>
+                        <td>
+                            <strong><a href="/players/@acc.GameId">@acc.GameId</a></strong>
+                            <span class="platform-badges">
+                                @if ((acc.Platforms ?? "PC").Contains("PC", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/pc.png" alt="PC" title="PC" class="platform-icon" />
+                                }
+                                @if ((acc.Platforms ?? "").Contains("PS3", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/ps3_white.png" alt="PS3" title="PS3" class="platform-icon" />
+                                }
+                            </span>
+                        </td>
+                        <td><span class="tag lime">Registered &middot; Ready to play</span></td>
+                        <td class="muted">@acc.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td><a href="/players/@acc.GameId" class="button small secondary" style="padding: 3px 10px; font-size: 11px;">View Profile &rsaquo;</a></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
 <partial name="_Pager" model="Model.Pager" />

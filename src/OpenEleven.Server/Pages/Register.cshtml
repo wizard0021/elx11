@@ -13,9 +13,12 @@
 
     @if (Model.Created is { Length: > 0 })
     {
-        <p class="msg ok" role="status">
-            Account &ldquo;@Model.Created&rdquo; created. You can log in from the game now.
-        </p>
+        <div class="msg ok" role="status" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px;">
+            <div>
+                Account <strong>&ldquo;@Model.Created&rdquo;</strong> created successfully! You can now log in from the game.
+            </div>
+            <a class="button small" href="/players/@Model.Created">View Profile &rsaquo;</a>
+        </div>
     }
 
     @if (Model.Error is { Length: > 0 })

@@ -1,0 +1,229 @@
+@page "/survey"
+@model SurveyModel
+@{
+    ViewData["Title"] = "Hardware & Systems Survey";
+    ViewData["Nav"] = "survey";
+    var r = Model.Report;
+}
+
+<style>
+    .survey-hero {
+        background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(2, 132, 199, 0.05) 100%),
+                    radial-gradient(ellipse at 80% 20%, rgba(56, 189, 248, 0.18), transparent 60%);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+    .survey-title {
+        font-family: var(--display);
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        margin: 0 0 8px;
+        background: linear-gradient(90deg, #ffffff 0%, #38bdf8 60%, #00b4ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .survey-subtitle {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0 0 18px;
+        line-height: 1.5;
+    }
+    .survey-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+    }
+    .stat-pill {
+        background: rgba(15, 23, 42, 0.75);
+        border: 1px solid rgba(56, 189, 248, 0.18);
+        border-radius: 8px;
+        padding: 12px 14px;
+    }
+    .stat-pill .label {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .stat-pill .val {
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+        margin-top: 4px;
+    }
+    .stat-pill .val small {
+        font-size: 12px;
+        color: #38bdf8;
+        font-weight: normal;
+    }
+    .survey-section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    .survey-section-header {
+        background: rgba(15, 23, 42, 0.9);
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .survey-section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #f0f6fc;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .survey-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .survey-table th, .survey-table td {
+        padding: 9px 18px;
+        text-align: left;
+        font-size: 13px;
+    }
+    .survey-table th {
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .survey-table tr:hover {
+        background: rgba(56, 189, 248, 0.04);
+    }
+    .bar-container {
+        width: 100%;
+        max-width: 220px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        height: 10px;
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 10px;
+    }
+    .bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%);
+        box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+    .delta-pos {
+        color: #4ade80;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    .delta-neg {
+        color: #f87171;
+        font-weight: 600;
+        font-size: 12px;
+    }
+    .delta-zero {
+        color: var(--faint);
+        font-size: 12px;
+    }
+    .privacy-box {
+        background: rgba(15, 23, 42, 0.6);
+        border-left: 3px solid #38bdf8;
+        border-radius: 4px;
+        padding: 12px 16px;
+        margin-bottom: 24px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.6;
+    }
+</style>
+
+<div class="survey-hero">
+    <h1 class="survey-title">ELX11 Community Hardware & Systems Survey</h1>
+    <p class="survey-subtitle">
+        An ongoing monthly breakdown of PC hardware, operating systems, and display configurations used by our Pro Evolution Soccer 2011 community.
+    </p>
+
+    <div class="survey-stats-grid">
+        <div class="stat-pill">
+            <div class="label">Survey Period</div>
+            <div class="val">@r.Period</div>
+        </div>
+        <div class="stat-pill">
+            <div class="label">Sampled Clients</div>
+            <div class="val">@r.SampleCount <small>systems</small></div>
+        </div>
+        <div class="stat-pill">
+            <div class="label">Top OS</div>
+            <div class="val">@(r.Categories.FirstOrDefault(c => c.Category == "Operating System")?.Items.FirstOrDefault()?.Name ?? "Pending")</div>
+        </div>
+        <div class="stat-pill">
+            <div class="label">Top Graphics Brand</div>
+            <div class="val">@(r.Categories.FirstOrDefault(c => c.Category == "Direct3D Video Card Brands")?.Items.FirstOrDefault()?.Name ?? "Pending")</div>
+        </div>
+    </div>
+</div>
+
+<div class="privacy-box">
+    <strong>Anonymous Telemetry Notice:</strong> All data is gathered completely anonymously through PES 2011 PC client telemetry (<code>/rc</code>, <code>CMD_SEND_PCSPEC</code>) and the official ELX11 Launcher diagnostic tool. No IP addresses, personal identifiers, or machine IDs are stored or displayed.
+</div>
+
+<nav class="tabs" aria-label="Survey Periods" style="margin-bottom: 20px;">
+    <a href="/survey?period=October 2026" aria-current="@(Model.Period is null or "October 2026" ? "page" : null)">October 2026</a>
+</nav>
+
+@foreach (var cat in r.Categories)
+{
+    <section class="survey-section">
+        <div class="survey-section-header">
+            <div class="survey-section-title">
+                @cat.Category
+            </div>
+            <span style="font-size: 11px; color: var(--faint);">@(cat.Items.Count) item(s)</span>
+        </div>
+        @if (cat.Items.Count == 0)
+        {
+            <div style="padding: 16px 18px; color: var(--muted); font-size: 13px;">
+                No telemetry recorded for this category yet. Submit your system specs via PES 2011 or the ELX11 Launcher!
+            </div>
+        }
+        else
+        {
+            <div class="scroll">
+                <table class="survey-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 45%;">Item / Configuration</th>
+                            <th style="width: 35%;">Distribution Share</th>
+                            <th style="width: 20%; text-align: right;">Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in cat.Items)
+                        {
+                            <tr>
+                                <td style="font-weight: 500;">@item.Name</td>
+                                <td>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" style="width: @Math.Min(100.0, item.Percentage)%"></div>
+                                    </div>
+                                    <span style="font-weight: 600; color: #fff;">@item.Percentage.ToString("F1")%</span>
+                                </td>
+                                <td style="text-align: right; color: var(--muted); font-weight: 600;">
+                                    @item.Count sample(s)
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}

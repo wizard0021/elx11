@@ -7,16 +7,29 @@
     ViewData["Live"] = true;   // sections marked data-live refresh themselves (wwwroot/js/live.js)
     var name = TitleProfiles.DisplayName(Game).Split(' ');   // "PES", "2011", "(PC)"
 }
-<section class="hero">
-    <div class="stars" aria-hidden="true">★★★★★★★★★★★</div>
-    <h1 class="logo"><span class="chrome">@name[0]</span> <em>@name.ElementAtOrDefault(1)</em> <small>@name.ElementAtOrDefault(2)</small></h1>
-    <p class="wordmark">Open Eleven</p>
-    <p class="tagline">Online multiplayer is back on a fan-run server. Free, no subscription.</p>
-    @if (Model.Announcement.Length > 0)
-    {
-        <p class="announcement">@Model.Announcement</p>
-    }
-    <a class="button" href="/register">Create an account</a>
+<section class="hero-stage">
+    <div class="hero-char noyno" aria-hidden="true">
+        <img src="/img/noyno.png" alt="Noyno - ELX11 Mascot" />
+    </div>
+    <div class="hero">
+        <div class="stars" aria-hidden="true">★★★★★★★★★★★</div>
+        <div class="hero-logo-box">
+            <img src="/img/logomain_crop.png" alt="ELX11 - Evolution Legacy X 11" class="hero-main-logo" style="max-width: min(460px, 90%); height: auto; display: block; margin: 10px auto 16px;" />
+        </div>
+        <p class="tagline">PES 2011 online multiplayer nostalgia is back. Free, ad-free, fan-powered.</p>
+        @if (Model.Announcement.Length > 0)
+        {
+            <p class="announcement">@Model.Announcement</p>
+        }
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <a class="button hero-btn" href="/register">Create an account</a>
+            <a class="button hero-btn" href="/ELX11_Launcher_v2.exe" style="background: #10b981; border-color: #10b981;">&#x2B07; Download Launcher</a>
+            <a class="button hero-btn" href="https://discord.gg/2yaF3JBA5X" target="_blank" rel="noopener" style="background: #5865F2; border-color: #5865F2;">Join Discord</a>
+        </div>
+    </div>
+    <div class="hero-char messi" aria-hidden="true">
+        <img src="/img/messi.png" alt="Lionel Messi" />
+    </div>
 </section>
 
 <div class="tiles" id="totals" data-live>
@@ -40,9 +53,26 @@
                 @foreach (var m in Model.Live)
                 {
                     <tr>
-                        <td class="num">@m.Home</td>
-                        <td class="center score">@m.HomeGoals &ndash; @m.AwayGoals</td>
-                        <td>@m.Away</td>
+                        <td class="num">
+                            <span>@m.Home</span>
+                            <span class="platform-badges">
+                                <img src="/img/@(m.HomePlatform.Contains("PS3", StringComparison.OrdinalIgnoreCase) ? "ps3_white.png" : "pc.png")" alt="@m.HomePlatform" title="@m.HomePlatform" class="platform-icon" />
+                            </span>
+                        </td>
+                        <td class="center score">
+                            <div class="live-platforms-center">
+                                <img src="/img/@(m.HomePlatform.Contains("PS3", StringComparison.OrdinalIgnoreCase) ? "ps3_white.png" : "pc.png")" alt="@m.HomePlatform" title="@m.HomePlatform" class="platform-icon" />
+                                <span class="vs-badge">VS</span>
+                                <img src="/img/@(m.AwayPlatform.Contains("PS3", StringComparison.OrdinalIgnoreCase) ? "ps3_white.png" : "pc.png")" alt="@m.AwayPlatform" title="@m.AwayPlatform" class="platform-icon" />
+                            </div>
+                            <span>@m.HomeGoals &ndash; @m.AwayGoals</span>
+                        </td>
+                        <td>
+                            <span class="platform-badges" style="margin-left: 0; margin-right: 6px;">
+                                <img src="/img/@(m.AwayPlatform.Contains("PS3", StringComparison.OrdinalIgnoreCase) ? "ps3_white.png" : "pc.png")" alt="@m.AwayPlatform" title="@m.AwayPlatform" class="platform-icon" />
+                            </span>
+                            <span>@m.Away</span>
+                        </td>
                         <td class="num"><span class="tag lime">@m.Phase</span></td>
                     </tr>
                 }
@@ -66,7 +96,19 @@
                     var p = Model.Top[i];
                     <tr>
                         <td class="num muted">@(i + 1)</td>
-                        <td><a href="/players/@p.Pid">@p.Name</a></td>
+                        <td>
+                            <a href="/players/@p.Pid">@p.Name</a>
+                            <span class="platform-badges">
+                                @if (p.Platforms.Contains("PC", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/pc.png" alt="PC" title="PC" class="platform-icon" />
+                                }
+                                @if (p.Platforms.Contains("PS3", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <img src="/img/ps3_white.png" alt="PS3" title="PS3" class="platform-icon" />
+                                }
+                            </span>
+                        </td>
                         @if (Model.Ranked)
                         {
                             <td><span class="div @p.Division">@p.Division</span></td>
@@ -129,3 +171,77 @@
         }
     </section>
 </div>
+
+
+<hr class="rule">
+
+<section class="panel roadmap-section" id="roadmap">
+    <div class="roadmap-header-row" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+        <div>
+            <h2 style="margin: 0 0 6px;"><span class="online"></span>ELX11 Project Roadmap</h2>
+            <p class="muted" style="margin: 0; font-size: 13.5px;">Evolution Legacy X 11 development milestones, open beta and future vision.</p>
+        </div>
+        <span class="tag lime" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700; letter-spacing: 0.05em;">● OPEN BETA ACTIVE</span>
+    </div>
+
+    <div class="roadmap-grid">
+        <div class="roadmap-card">
+            <div class="phase-header">
+                <span class="phase-tag completed">✓ Phase 1 &middot; Core</span>
+                <span class="phase-status-text" style="color: #34d399; font-size: 11px; font-weight: 600;">Completed</span>
+            </div>
+            <h3>Core Infrastructure</h3>
+            <p class="desc">Reverse-engineered Konami binary protocol and server backbone built from scratch in .NET 9.</p>
+            <ul class="roadmap-items">
+                <li><span class="check" style="color: #34d399;">✔</span> <span>XOR & Blowfish-ECB cryptography and packet framing</span></li>
+                <li><span class="check" style="color: #34d399;">✔</span> <span>Gate, Account, Menu & Lobby services (.NET 9)</span></li>
+                <li><span class="check" style="color: #34d399;">✔</span> <span>Web Hub, Konami ID-style registration & account system</span></li>
+                <li><span class="check" style="color: #34d399;">✔</span> <span>UDP P2P Direct Handshake (Port 5730) integration</span></li>
+            </ul>
+        </div>
+
+        <div class="roadmap-card active">
+            <div class="phase-header">
+                <span class="phase-tag active">★ Phase 2 &middot; Open Beta</span>
+                <span class="phase-status-text" style="color: var(--lime); font-size: 11px; font-weight: 700;">Live Now</span>
+            </div>
+            <h3>Cross-Platform & Beta</h3>
+            <p class="desc">Open beta is now live, bringing PC and PlayStation 3 players together on the same server!</p>
+            <ul class="roadmap-items">
+                <li><span class="check" style="color: var(--lime);">✔</span> <span><strong>Dual-Platform:</strong> PC & PS3 players in the same lobby</span></li>
+                <li><span class="check" style="color: var(--lime);">✔</span> <span>Dynamic platform indicator badges on live matches & profiles</span></li>
+                <li><span class="check" style="color: var(--lime);">✔</span> <span>ELX11 Launcher v2: Automated setup, DNS config & self-update</span></li>
+                <li><span class="check" style="color: var(--lime);">✔</span> <span>Public open registration & real-time Live Match Ticker</span></li>
+            </ul>
+        </div>
+
+        <div class="roadmap-card">
+            <div class="phase-header">
+                <span class="phase-tag in-progress">⚡ Phase 3 &middot; Next</span>
+                <span class="phase-status-text" style="color: #38bdf8; font-size: 11px; font-weight: 600;">In Progress</span>
+            </div>
+            <h3>Matchmaking & Cups</h3>
+            <p class="desc">Automated skill-based matchmaking algorithms and official tournament bracket engine.</p>
+            <ul class="roadmap-items">
+                <li><span class="check" style="color: #38bdf8;">🔄</span> <span>Elo / Rating-based <strong>Quick Match</strong> automated matchmaking queue</span></li>
+                <li><span class="check" style="color: #38bdf8;">🔄</span> <span>Automated Weekend Knockout Cups & community tournaments</span></li>
+                <li><span class="check" style="color: #38bdf8;">🔄</span> <span>RPCS3 PS3 Emulator network synchronization & latency tuning</span></li>
+                <li><span class="check" style="color: #38bdf8;">🔄</span> <span>Anti-ragequit penalty system & disconnect handling</span></li>
+            </ul>
+        </div>
+
+        <div class="roadmap-card">
+            <div class="phase-header">
+                <span class="phase-tag planned">✦ Phase 4 &middot; Vision</span>
+                <span class="phase-status-text" style="color: #c084fc; font-size: 11px; font-weight: 600;">Planned</span>
+            </div>
+            <h3>Master League Online</h3>
+            <p class="desc">The heartbeat of PES 2011: Full revival of the legendary Master League Online ecosystem.</p>
+            <ul class="roadmap-items">
+                <li><span class="check" style="color: #c084fc;">📋</span> <span><strong>Master League Online (MLO):</strong> Squad building & player contracts</span></li>
+                <li><span class="check" style="color: #c084fc;">📋</span> <span>Dynamic peer-to-peer transfer market & club budget management</span></li>
+                <li><span class="check" style="color: #c084fc;">📋</span> <span>Monthly Community Hardware & Telemetry Surveys</span></li>
+            </ul>
+        </div>
+    </div>
+</section>

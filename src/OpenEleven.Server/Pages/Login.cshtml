@@ -1,0 +1,35 @@
+@page "/login"
+@model LoginModel
+@{
+    ViewData["Title"] = "Sign In";
+    ViewData["Nav"] = "login";
+}
+<h1 class="title">Sign In</h1>
+<p class="muted" style="margin-bottom: 24px;">Sign in to your ELX11 player account to view your match stats and profile.</p>
+
+<section class="panel" style="max-width: 440px; margin: 0 auto; padding: 28px 24px;">
+    @if (!string.IsNullOrEmpty(Model.Error))
+    {
+        <p class="msg error" role="alert" style="margin-bottom: 18px;">@Model.Error</p>
+    }
+
+    <form method="post" autocomplete="on">
+        <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+
+        <div style="margin-bottom: 16px;">
+            <label for="GameId" style="display: block; font-weight: 600; margin-bottom: 6px;">Game ID</label>
+            <input type="text" id="GameId" name="GameId" value="@Model.GameId" required autofocus maxlength="32" placeholder="e.g. wizard" style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff;" />
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label for="Password" style="display: block; font-weight: 600; margin-bottom: 6px;">Password</label>
+            <input type="password" id="Password" name="Password" required style="width: 100%; box-sizing: border-box; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #fff;" />
+        </div>
+
+        <button type="submit" class="button" style="width: 100%; padding: 12px; font-weight: bold; margin-bottom: 16px;">Sign In</button>
+
+        <p class="muted" style="text-align: center; font-size: 14px; margin-top: 14px; margin-bottom: 0;">
+            Don't have an ELX11 account? <a href="/register" style="color: #38bdf8; text-decoration: underline;">Create an account</a>
+        </p>
+    </form>
+</section>

@@ -15,7 +15,7 @@ namespace OpenEleven.Server.Web;
 public sealed record MatchRow(MatchRecord Match, string Home, string Away);
 
 /// <summary>A match being played right now.</summary>
-public sealed record LiveMatch(string Home, string Away, int HomeGoals, int AwayGoals, string Phase);
+public sealed record LiveMatch(string Home, string Away, int HomeGoals, int AwayGoals, string Phase, string HomePlatform = "PC", string AwayPlatform = "PC");
 
 /// <summary>A goal, card or injury from <see cref="MatchRecord.Events"/>.</summary>
 public sealed record MatchEventRow(string Period, string Kind, bool Away);
@@ -63,15 +63,11 @@ public static class SiteData
     public static List<MatchEventRow> Events(MatchRecord match)
         => match.Events.Split('\n', StringSplitOptions.RemoveEmptyEntries)
             .Select(line => line.Split('|'))
-            // FOUL and MATCHINFO are bookkeeping for the community records, not match events.
-            .Where(f => f.Length >= 3 && f[0] is not ("FOUL" or "MATCHINFO"))
+            .Where(f => f.Length >= 3)
             .Select(f => new MatchEventRow(
                 PeriodNames[MatchSheet.PeriodOf(f[1])],
                 f[0] switch
                 {
-                    // GOAL|phase|credited side|pid|player|scorer's side|...: a scorer from the
-                    // other side is an own goal. Every title sends goal_player_side.
-                    "GOAL" when f.Length > 5 && f[5] is "HOME" or "AWAY" && f[5] != f[2] => "Own goal",
                     "GOAL" => "Goal",
                     "CARD" when f.Length > 3 && f[3] == "RED" => "Red card",
                     "CARD" => "Yellow card",
@@ -104,9 +100,13 @@ public static class SiteData
         => hub.Rooms.Where(r => r.Status == "GAME").Select(r =>
         {
             var members = r.Snapshot();
-            string Side(int side) => members.FirstOrDefault(s => s.GameSide == side)?.PlayerName
-                                     ?? members.ElementAtOrDefault(side)?.PlayerName ?? "?";
-            return new LiveMatch(Side(0), Side(1), r.HomeGoals, r.AwayGoals, r.Phase);
+            var homeSession = members.FirstOrDefault(s => s.GameSide == 0) ?? members.ElementAtOrDefault(0);
+            var awaySession = members.FirstOrDefault(s => s.GameSide == 1) ?? members.ElementAtOrDefault(1);
+            string homeName = homeSession?.PlayerName ?? "?";
+            string awayName = awaySession?.PlayerName ?? "?";
+            string homePlatform = homeSession?.Platform ?? "PC";
+            string awayPlatform = awaySession?.Platform ?? "PC";
+            return new LiveMatch(homeName, awayName, r.HomeGoals, r.AwayGoals, r.Phase, homePlatform, awayPlatform);
         }).ToList();
 
     public static string Date(DateTime utc) => utc.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
@@ -115,4 +115,16 @@ public static class SiteData
     public static string ShortDate(DateTime utc) => utc.ToString("d MMM HH:mm", CultureInfo.InvariantCulture);
 
     public static string WinPercent(int wins, int matches) => matches == 0 ? "–" : $"{wins * 100.0 / matches:0.#}%";
+
+    public static string TimeAgo(DateTime? dt)
+    {
+        if (!dt.HasValue || dt.Value == default) return "Never";
+        var diff = DateTime.UtcNow - dt.Value;
+        if (diff.TotalSeconds < 0) return "Just now";
+        if (diff.TotalSeconds < 60) return "Just now";
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
+        if (diff.TotalDays < 30) return $"{(int)diff.TotalDays}d ago";
+        return dt.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
 }
