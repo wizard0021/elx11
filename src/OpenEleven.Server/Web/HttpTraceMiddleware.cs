@@ -36,6 +36,12 @@ public sealed class HttpTraceMiddleware(
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (context.Request.Path.StartsWithSegments("/api/bot"))
+        {
+            await next(context);
+            return;
+        }
+
         var debug = options.CurrentValue.Debug;
         if (!debug.HexDump)
         {

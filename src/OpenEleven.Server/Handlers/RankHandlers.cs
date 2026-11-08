@@ -96,7 +96,7 @@ public sealed class RankHandlers(GameDbContext db, TimeProvider time, ILogger<Ra
 
         var counts = await db.Players.GroupBy(p => p.Division).Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.Key, g => g.Count, ctx.CancellationToken);
-        var divcount = Enum.GetValues<Division>().Select(d => (object?)counts.GetValueOrDefault(d)).Append(0).ToArray();
+        var divcount = RankSystem.Divisions.Select(d => (object?)counts.GetValueOrDefault(d)).Append(0).ToArray();
 
         player.PendingDivisionUpdate = "";
         await db.SaveChangesAsync(ctx.CancellationToken);
@@ -129,60 +129,21 @@ public sealed class RankHandlers(GameDbContext db, TimeProvider time, ILogger<Ra
     /// <summary>
     /// The archived weeks (FUN_005f2870/FUN_005f2be0): date_list_num, then
     /// date_list[i].start_date / end_date as unix seconds, newest first.
-    /// </summary>
-    [Command("CMD_GET_WEEKLYRANKINGDATELIST", Roles = ServiceRole.Menu, Profiles = GameProfiles.Modern)]
-    public async ValueTask<KvMessage[]> GetWeeklyRankingDates(CommandContext ctx)
-    {
-        var weeks = await RankingQuery.ArchivedWeeksAsync(db, WeeksShown, ctx.CancellationToken);
-        if (weeks.Count == 0)
-            return [ctx.Fail("ERR_WEEKLYRANKINGNOTFOUND")];
-
-        return [ctx.Ok().SetList("date_list_num", "date_list", weeks.Select(start => Week(new KvMessage(), start)).ToArray())];
-    }
-
-    /// <summary>
     /// PES 2010 (FUN_0072a640) also reads date_list[i].id, the weekid it posts back, and adds
     /// the running week itself, so it takes an empty list where the error leaves it nothing.
     /// </summary>
-    [Command("CMD_GET_WEEKLYRANKINGDATELIST", Roles = ServiceRole.Menu, Profiles = GameProfile.Pes2010Pc)]
-    public async ValueTask<KvMessage[]> GetWeeklyRankingDatesPes2010(CommandContext ctx)
+    [Command("CMD_GET_WEEKLYRANKINGDATELIST", Roles = ServiceRole.Menu)]
+    public async ValueTask<KvMessage[]> GetWeeklyRankingDates(CommandContext ctx)
     {
+        var pes2010 = options.CurrentValue.GameProfile == GameProfile.Pes2010Pc;
         var weeks = await RankingQuery.ArchivedWeeksAsync(db, WeeksShown, ctx.CancellationToken);
         if (weeks.Count == 0)
-            return [ctx.Ok().Set("date_list_num", 0)];
+            return pes2010 ? [ctx.Ok().Set("date_list_num", 0)] : [ctx.Fail("ERR_WEEKLYRANKINGNOTFOUND")];
 
-        return [ctx.Ok().SetList("date_list_num", "date_list", weeks.Select(start => Week(new KvMessage().Set("id", start), start)).ToArray())];
+        var entries = weeks.Select(start => (pes2010 ? new KvMessage().Set("id", start) : new KvMessage())
+            .Set("start_date", start)
+            .Set("end_date", start + 7 * 24 * 3600 - 1)).ToArray();
+        return [ctx.Ok().SetList("date_list_num", "date_list", entries)];
     }
 
-    private static KvMessage Week(KvMessage entry, int start)
-        => entry.Set("start_date", start).Set("end_date", start + 7 * 24 * 3600 - 1);
-
-    /// <summary>
-    /// Share of the player's matches that ended normally, in percent. The server keeps no
-    /// per-match history yet, so the last-10 and last-login figures repeat the overall one.
-    /// </summary>
-    [Command("CMD_GET_NORMALEND_RATE", Roles = ServiceRole.Menu, Profiles = GameProfiles.Since2012)]
-    public async ValueTask<KvMessage[]> GetNormalEndRate(CommandContext ctx)
-    {
-        var stats = await db.PlayerStats.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.PlayerId == ctx.Session.Pid, ctx.CancellationToken);
-        var rate = stats is { MatchCount: > 0 }
-            ? Math.Clamp((stats.MatchCount - stats.DisconnectCount) * 100 / stats.MatchCount, 0, 100)
-            : 100;
-
-        return [ctx.Ok()
-            .Set("normalend_10_rate", rate)
-            .Set("normalend_all_rate", rate)
-            .Set("lastlogin_normalend_10_rate", rate)
-            .Set("lastlogin_normalend_all_rate", rate)];
-    }
-
-    /// <summary>
-    /// Master League division report shown at login (request: svrtype, pid). Master League is
-    /// not served, so nothing ever changed.
-    /// </summary>
-    [Command("CMD_GET_ML_DIVISIONUPDATE", Roles = ServiceRole.Account | ServiceRole.Menu, Profiles = GameProfiles.Since2012,
-        RequiredState = SessionState.Authenticated)]
-    public ValueTask<KvMessage[]> GetMlDivisionUpdate(CommandContext ctx)
-        => Reply.Of(ctx.Ok().Set("is_update", "NO"));
 }

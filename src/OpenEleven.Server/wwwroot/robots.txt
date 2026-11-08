@@ -1,0 +1,13 @@
+# ELX11 - Evolution Legacy X 11 PES 2011 Server
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /adsrv/
+Disallow: /gameid_auth
+Disallow: /files/
+
+Allow: /
+Allow: /rankings
+Allow: /players
+Allow: /matches
+Allow: /register

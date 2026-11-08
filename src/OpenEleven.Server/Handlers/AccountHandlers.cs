@@ -31,6 +31,49 @@ public sealed class AccountHandlers(
     // Captures show the client repeats this handshake on Account, Menu and Lobby.
     private const ServiceRole AuthRoles = ServiceRole.All;
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<System.Net.IPAddress, string> _ps3PsnByIp = new();
+
+    private static string? ExtractPsnOnlineId(string? ticketHex)
+    {
+        if (string.IsNullOrWhiteSpace(ticketHex) || ticketHex.Length < 16)
+            return null;
+
+        try
+        {
+            var tagIdx = ticketHex.IndexOf("00040020", StringComparison.OrdinalIgnoreCase);
+            if (tagIdx >= 0 && tagIdx + 8 + 64 <= ticketHex.Length)
+            {
+                var idHex = ticketHex.Substring(tagIdx + 8, 64);
+                var bytes = Convert.FromHexString(idHex);
+                var zeroIdx = Array.IndexOf(bytes, (byte)0);
+                var length = zeroIdx >= 0 ? zeroIdx : bytes.Length;
+                var onlineId = System.Text.Encoding.UTF8.GetString(bytes, 0, length).Trim();
+                if (!string.IsNullOrEmpty(onlineId))
+                    return onlineId;
+            }
+        }
+        catch
+        {
+            // Ignore malformed ticket
+        }
+
+        return null;
+    }
+
+    [Command("CMD_AUTH_NPTICKET", Roles = ServiceRole.Account, RequiredState = SessionState.Connected)]
+    public ValueTask<KvMessage[]> AuthNpTicket(CommandContext ctx)
+    {
+        var ticketHex = ctx.Request.GetString("np_ticket");
+        var onlineId = ExtractPsnOnlineId(ticketHex);
+        if (!string.IsNullOrEmpty(onlineId))
+        {
+            _ps3PsnByIp[ctx.Session.Remote.Address] = onlineId;
+            log.LogInformation("Parsed PSN Online ID '{OnlineId}' for PS3 client {RemoteAddress}", onlineId, ctx.Session.Remote.Address);
+        }
+
+        return Reply.Of(ctx.Ok());
+    }
+
     [Command("MSG_REQCCODE", Roles = AuthRoles, RequiredState = SessionState.Connected)]
     public ValueTask<KvMessage[]> RequestChallengeCode(CommandContext ctx)
     {
@@ -84,26 +127,63 @@ public sealed class AccountHandlers(
 
             if (ps3Account is null)
             {
-                // Mapped tester check: Dr. Insano (real PS3 hardware)
-                if (entryHash == "a924d2ccac25c6832c83f9d6b62dc1d6")
+                _ps3PsnByIp.TryGetValue(ctx.Session.Remote.Address, out var psnId);
+
+                if (!string.IsNullOrWhiteSpace(psnId) &&
+                    (psnId.StartsWith("Doctor_insano", StringComparison.OrdinalIgnoreCase) ||
+                     psnId.StartsWith("Tomas-anzini", StringComparison.OrdinalIgnoreCase)))
                 {
                     ps3Account = await accounts.GetByGameIdAsync("Dr.insano.0", ctx.CancellationToken);
                 }
-
-                var ps3GameId = $"ps3_{entryHash[..8]}";
-                ps3Account ??= await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
-
-                if (ps3Account is null)
+                else if (!string.IsNullOrWhiteSpace(psnId))
                 {
-                    var (regResult, created) = await accounts.RegisterAsync(ps3GameId, reportedHash, entryHash, ctx.CancellationToken);
-                    if (regResult == RegistrationResult.Created && created is not null)
+                    var ps3GameId = $"ps3_{psnId}";
+                    ps3Account = await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
+
+                    if (ps3Account is null)
                     {
-                        ps3Account = created;
-                        log.LogInformation("Auto-registered new PS3 account {GameId} for entry_hash {EntryHash}", ps3GameId, entryHash);
+                        var (regResult, created) = await accounts.RegisterAsync(ps3GameId, reportedHash, entryHash, ctx.CancellationToken);
+                        if (regResult == RegistrationResult.Created && created is not null)
+                        {
+                            ps3Account = created;
+                            log.LogInformation("Auto-registered new PS3 account {GameId} for PSN {PsnId}", ps3GameId, psnId);
+                        }
+                        else
+                        {
+                            ps3Account = await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
+                        }
                     }
-                    else
+
+                    if (ps3Account is not null)
                     {
-                        ps3Account = await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
+                        // Ensure a Player record exists for this PS3 account
+                        var existingPlayers = await players.GetForAccountAsync(ps3Account.Id, ctx.CancellationToken);
+                        if (existingPlayers.Count == 0)
+                        {
+                            var playerName = psnId.Length > 15 ? psnId[..15] : psnId;
+                            var normalized = PlayerNamePolicy.Normalize(playerName);
+                            var (createResult, newPlayer) = await players.CreateForAccountAsync(
+                                ps3Account.Id, playerName, normalized, "EN",
+                                options.CurrentValue.Rank.StartRating,
+                                RankSystem.Applies(options.CurrentValue.GameProfile) ? RankSystem.Divisions[0] : "D5",
+                                ctx.CancellationToken);
+
+                            if (createResult == PlayerCreateResult.Created && newPlayer is not null)
+                            {
+                                log.LogInformation("Auto-created player profile {PlayerName} (pid {Pid}) for PS3 account {GameId}",
+                                    newPlayer.Name, newPlayer.Pid, ps3Account.GameId);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    var ps3GameId = $"ps3_{entryHash[..8]}";
+                    ps3Account = await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
+                    if (ps3Account is null)
+                    {
+                        var (regResult, created) = await accounts.RegisterAsync(ps3GameId, reportedHash, entryHash, ctx.CancellationToken);
+                        ps3Account = created ?? await accounts.GetByGameIdAsync(ps3GameId, ctx.CancellationToken);
                     }
                 }
             }

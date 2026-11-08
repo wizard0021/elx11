@@ -83,6 +83,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ProtocolCodecs>();
 
         services.AddSingleton<MatchResults>();
+        services.AddSingleton<MatchEventService>();
+        services.AddSingleton<MloMarketService>();
+        services.AddSingleton<HardwareSurveyService>();
         services.AddHostedService<RankScheduler>();
         services.AddSingleton<Hub>();
         services.TryAddSingleton(TimeProvider.System);

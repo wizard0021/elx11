@@ -1,13 +1,13 @@
 @model IReadOnlyList<MatchRow>
 @if (Model.Count == 0)
 {
-    <p class="empty">No matches played yet.</p>
+    <p class="empty">@T["Panel_NoMatches"]</p>
 }
 else
 {
     <div class="scroll">
         <table class="list">
-            <thead><tr><th>Date (UTC)</th><th class="num">Home</th><th class="center">Score</th><th>Away</th><th></th></tr></thead>
+            <thead><tr><th>@T["Col_Date"]</th><th class="num">@T["Col_Home"]</th><th class="center">@T["Col_Score"]</th><th>@T["Col_Away"]</th><th></th></tr></thead>
             <tbody>
             @foreach (var row in Model)
             {
@@ -18,10 +18,10 @@ else
                     <td class="center"><button type="button" class="scorebutton" popovertarget="match-@m.Id" title="Match details">@m.HomeScore &ndash; @m.AwayScore</button></td>
                     <td><a href="/players/@m.AwayPid">@row.Away</a></td>
                     <td>
-                        @if (m.Ranked) { <span class="tag lime">Ranked</span> }
-                        @if (m.ExtraTime) { <span class="tag">ET</span> }
-                        @if (m.Penalties) { <span class="tag">Pens</span> }
-                        @if (m.Disconnected) { <span class="tag red">Disconnect</span> }
+                        @if (m.Ranked) { <span class="tag lime">@T["Tag_Ranked"]</span> }
+                        @if (m.ExtraTime) { <span class="tag">@T["Tag_ExtraTime"]</span> }
+                        @if (m.Penalties) { <span class="tag">@T["Tag_Penalties"]</span> }
+                        @if (m.Disconnected) { <span class="tag red">@T["Tag_Disconnect"]</span> }
                     </td>
                 </tr>
             }

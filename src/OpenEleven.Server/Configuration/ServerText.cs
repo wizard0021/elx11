@@ -166,8 +166,8 @@ public static class ServerText
         },
         ["eula.text"] = new()
         {
-            ["EN"] = "OpenEleven is an independent, non-commercial fan server, not affiliated with Konami. " +
-                     "Be respectful to other players. Cheating, abuse and modified game data lead to a ban.",
+            ["EN"] = "Evolution Legacy X 11 (ELX11) aims to revive what PES 2011 servers were like back then and bring back the nostalgia. " +
+                     "By playing on this server, you agree to our fair play rules, respect fellow players, and enjoy the game. Cheating, toxic behavior, and modified game data are strictly prohibited.",
             ["FR"] = "OpenEleven est un serveur de fans indépendant et non commercial, sans lien avec Konami. " +
                      "Respectez les autres joueurs. La triche, les abus et les données de jeu modifiées entraînent un bannissement.",
             ["GR"] = "OpenEleven ist ein unabhängiger, nicht kommerzieller Fanserver ohne Verbindung zu Konami. " +
@@ -182,8 +182,8 @@ public static class ServerText
                      "Respecteer andere spelers. Valsspelen, misbruik en aangepaste speldata leiden tot een ban.",
             ["SV"] = "OpenEleven är en oberoende, icke-kommersiell fanserver utan koppling till Konami. " +
                      "Visa respekt mot andra spelare. Fusk, missbruk och ändrad speldata leder till avstängning.",
-            ["TR"] = "OpenEleven, Konami ile bağlantısı olmayan bağımsız ve ticari olmayan bir hayran sunucusudur. " +
-                     "Diğer oyunculara saygılı olun. Hile, kötüye kullanım ve değiştirilmiş oyun verileri yasaklanmaya yol açar.",
+            ["TR"] = "Evolution Legacy X 11 (ELX11), PES 2011 sunucularının o dönemki heyecanını ve nostaljisini yeniden yaşatmayı amaçlar. " +
+                     "Bu sunucuda oynayarak adil oyun kurallarımıza uymayı, diğer oyunculara saygı göstermeyi ve oyunun tadını çıkarmayı kabul etmiş olursunuz. Hile, hakaret ve haksız avantaj sağlayan modifikasyonlar kesinlikle yasaktır.",
             ["JP"] = "OpenElevenはKonamiとは無関係の、独立した非営利のファンサーバーです。" +
                      "他のプレイヤーに敬意を持って接してください。チート、迷惑行為、改変されたゲームデータの使用はBANの対象となります。",
             ["KR"] = "OpenEleven은 Konami와 관련 없는 독립적인 비상업적 팬 서버입니다. " +

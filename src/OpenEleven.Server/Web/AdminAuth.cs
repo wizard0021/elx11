@@ -55,6 +55,16 @@ public static class AdminAuth
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return Task.CompletedTask;
             };
+        }).AddCookie("Player", cookie =>
+        {
+            cookie.LoginPath = "/login";
+            cookie.Cookie.Name = "elx11_player";
+            cookie.Cookie.Path = "/";
+            cookie.Cookie.HttpOnly = true;
+            cookie.Cookie.SameSite = SameSiteMode.Lax;
+            cookie.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            cookie.ExpireTimeSpan = TimeSpan.FromDays(30);
+            cookie.SlidingExpiration = true;
         });
         services.AddAuthorization();
         return services;

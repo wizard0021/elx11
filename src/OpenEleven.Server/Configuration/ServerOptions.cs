@@ -365,6 +365,11 @@ public sealed class ProtocolOptions
     /// </summary>
     public bool RequireSameParaHashToJoin { get; set; } = true;
 
+    /// <summary>
+    /// When true, players only see and join rooms created by players on the same platform (PC vs PS3).
+    /// </summary>
+    public bool IsolateRoomsByPlatform { get; set; } = true;
+
     /// <summary>Reply with a bare NOERR ack to commands that have no handler yet.</summary>
     public bool AckUnknownCommands { get; set; } = true;
 

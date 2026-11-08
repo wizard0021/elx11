@@ -6,11 +6,11 @@
     ViewData["Nav"] = "rankings";
     string? On(bool selected) => selected ? "true" : null;
 }
-<h1 class="title">Rankings</h1>
+<h1 class="title">@T["Rankings_Title"]</h1>
 
 <nav class="tabs" aria-label="Period">
-    <a href="@RankingsModel.Link(Model.Sort, false, Model.Division)" aria-current="@On(!Model.Week)">All time</a>
-    <a href="@RankingsModel.Link(Model.Sort, true, Model.Division)" aria-current="@On(Model.Week)">This week</a>
+    <a href="@RankingsModel.Link(Model.Sort, false, Model.Division)" aria-current="@On(!Model.Week)">@T["Tabs_AllTime"]</a>
+    <a href="@RankingsModel.Link(Model.Sort, true, Model.Division)" aria-current="@On(Model.Week)">@T["Tabs_ThisWeek"]</a>
 </nav>
 <nav class="tabs" aria-label="Sort">
     @foreach (var t in Model.Shown)
@@ -21,7 +21,7 @@
 @if (Model.Ranked)
 {
     <nav class="tabs" aria-label="Division">
-        <a href="@RankingsModel.Link(Model.Sort, Model.Week, null)" aria-current="@On(Model.Division is null)">All divisions</a>
+        <a href="@RankingsModel.Link(Model.Sort, Model.Week, null)" aria-current="@On(Model.Division is null)">@T["Tabs_AllDivisions"]</a>
         @foreach (var d in Enumerable.Reverse(RankSystem.Divisions))
         {
             <a href="@RankingsModel.Link(Model.Sort, Model.Week, d)" aria-current="@On(d == Model.Division)">@d</a>
@@ -32,7 +32,7 @@
 <section class="panel">
     @if (Model.Lines.Count == 0)
     {
-        <p class="empty">Nobody has played @(Model.Week ? "this week" : "yet").</p>
+        <p class="empty">@(Model.Week ? T["Rankings_EmptyWeek"] : T["Rankings_EmptyAll"])</p>
     }
     else
     {
@@ -40,10 +40,10 @@
             <table class="list">
                 <thead>
                 <tr>
-                    <th class="num">#</th><th>Player</th>
-                    @if (Model.Ranked) { <th>Div</th><th class="num">Rating</th><th class="num">Pts</th> }
-                    <th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th>
-                    <th class="num">Win %</th><th class="num">Streak</th>
+                    <th class="num">#</th><th>@T["Col_Player"]</th>
+                    @if (Model.Ranked) { <th>@T["Col_Division"]</th><th class="num">@T["Col_Rating"]</th><th class="num">@T["Col_Points"]</th> }
+                    <th class="num">@T["Col_MatchesShort"]</th><th class="num">@T["Col_WinShort"]</th><th class="num">@T["Col_DrawShort"]</th><th class="num">@T["Col_LossShort"]</th>
+                    <th class="num">@T["Col_WinRate"]</th><th class="num">@T["Col_Streak"]</th>
                 </tr>
                 </thead>
                 <tbody>

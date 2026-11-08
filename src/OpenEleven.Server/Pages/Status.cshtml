@@ -11,20 +11,20 @@
 <div id="status-content" data-live>
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
         <div>
-            <h1 class="title" style="margin-bottom: 4px;">System & API Status</h1>
-            <p class="muted">Live health telemetry and port monitoring for ELX11 game servers and APIs.</p>
+            <h1 class="title" style="margin-bottom: 4px;">@T["Status_Title"]</h1>
+            <p class="muted">@T["Status_Subtitle"]</p>
         </div>
         <div>
             @if (Model.AllHealthy)
             {
                 <span class="tag lime" style="font-size: 14px; padding: 6px 14px; font-weight: bold;">
-                    <span class="online"></span> All Systems Operational
+                    <span class="online"></span> @T["Status_AllOperational"]
                 </span>
             }
             else
             {
                 <span class="tag red" style="font-size: 14px; padding: 6px 14px; font-weight: bold;">
-                    <span class="offline-dot"></span> System Degradation Detected
+                    <span class="offline-dot"></span> @T["Status_Degraded"]
                 </span>
             }
         </div>
@@ -33,11 +33,11 @@
     <div class="tiles" style="margin-bottom: 24px;">
         <div class="tile selected">
             <strong>@uptimeStr</strong>
-            <span>Server Uptime</span>
+            <span>@T["Status_Uptime"]</span>
         </div>
         <div class="tile">
             <strong>@Model.MemoryMb MB</strong>
-            <span>Process RAM</span>
+            <span>@T["Status_Ram"]</span>
         </div>
         <div class="tile">
             <strong>@Model.ActiveConnections</strong>

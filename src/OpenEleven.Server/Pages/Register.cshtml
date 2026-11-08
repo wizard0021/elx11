@@ -6,7 +6,7 @@
     ViewData["Title"] = "Create an account";
     ViewData["Nav"] = "register";
 }
-<h1 class="title center">Create an account</h1>
+<h1 class="title center">@T["Register_Title"]</h1>
 <p class="subtitle center">@TitleProfiles.DisplayName(Game) online server</p>
 <section class="panel card">
 <div class="body">
@@ -61,7 +61,7 @@
         }
 
         @* Disabled until the challenge is passed; the server checks the token regardless. *@
-        <button type="submit" id="submit" class="wide" disabled="@(Model.Captcha is not null)">Create account</button>
+        <button type="submit" id="submit" class="wide" disabled="@(Model.Captcha is not null)">@T["Register_Submit"]</button>
     </form>
 </div>
 </section>

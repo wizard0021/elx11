@@ -14,6 +14,8 @@ using OpenEleven.Server.Logging;
 using OpenEleven.Server.State;
 using OpenEleven.Server.Transport;
 using OpenEleven.Server.Web;
+using Microsoft.AspNetCore.Localization;
+using OpenEleven.Server.Web.Localization;
 
 namespace OpenEleven.Server;
 
@@ -71,11 +73,22 @@ public static class OpenElevenServerHost
             pages.Conventions.AddFolderApplicationModelConvention("/Admin", page => page.Filters.Add(new AdminPortalFilter()));
         });
         builder.Services.AddHttpRateLimits();
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddSingleton<IWebLocalizer, WebLocalizer>();
 
         // The public pages read whole tables; a few seconds of staleness keeps that off the database.
         // Every distinct query string is its own entry, so the size cap (default 100 MB) is what
         // bounds a crawl of made-up searches.
-        builder.Services.AddOutputCache(cache => cache.SizeLimit = 16 * 1024 * 1024);
+        builder.Services.AddOutputCache(cache =>
+        {
+            cache.SizeLimit = 16 * 1024 * 1024;
+            cache.AddBasePolicy(p => p.VaryByValue(ctx =>
+            {
+                var loc = ctx.RequestServices.GetService<IWebLocalizer>();
+                var lang = loc?.CurrentCulture ?? CultureCatalog.DefaultCulture;
+                return new KeyValuePair<string, string>("lang", lang);
+            }));
+        });
 
         // Antiforgery tokens are protected with Data Protection keys, which default to a
         // per-user directory that a container does not persist. Without this, every restart
@@ -88,6 +101,12 @@ public static class OpenElevenServerHost
                              ?? new ServerOptions();
 
         builder.Services.AddAdminPortal(startupOptions.Https.Enabled);
+
+        // Suppress noisy framework logs from high-frequency bot polling
+        builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Routing.EndpointMiddleware", LogLevel.Warning);
+        builder.Logging.AddFilter("Microsoft.AspNetCore.Http.Result.OkObjectResult", LogLevel.Warning);
 
         // Durable copy of the log. Console output is gone as soon as it scrolls, and a client
         // attempt that fails in two seconds is exactly the evidence that cannot be re-derived.
@@ -153,6 +172,36 @@ public static class OpenElevenServerHost
         // Explicit, not implicit. HttpTraceMiddleware decides whether to redact a body by
         // reading the matched endpoint's metadata, so routing has to have run by then.
         app.UseRouting();
+
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Query.TryGetValue("lang", out var langVal)
+                && CultureCatalog.IsSupported(langVal))
+            {
+                var cleanLang = langVal.ToString().Trim().ToLowerInvariant();
+                context.Response.Cookies.Append(
+                    "lang",
+                    cleanLang,
+                    new CookieOptions
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddYears(1),
+                        IsEssential = true,
+                        SameSite = SameSiteMode.Lax,
+                        Path = "/",
+                    });
+                context.Response.Cookies.Append(
+                    ".AspNetCore.Culture",
+                    $"c={cleanLang}|uic={cleanLang}",
+                    new CookieOptions
+                    {
+                        Expires = DateTimeOffset.UtcNow.AddYears(1),
+                        IsEssential = true,
+                        SameSite = SameSiteMode.Lax,
+                        Path = "/",
+                    });
+            }
+            await next(context);
+        });
 
         app.UseMiddleware<HttpTraceMiddleware>();
         app.UseAuthentication();

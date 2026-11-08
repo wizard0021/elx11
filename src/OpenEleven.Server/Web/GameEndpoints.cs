@@ -527,15 +527,9 @@ public static class GameEndpoints
         });
 
                         // Konami Service Information / Notice endpoints (e.g. /VT031-E1/info/info_sp.txt)
-        app.MapGet("/{product}/info/{filename}", (string product, string filename) =>
-            Results.Text(@"Evolution Legacy X 11 (ELX11) - Beta Abierta
-Bienvenido a PES 2011!
-", "text/plain; charset=utf-8", Encoding.UTF8));
+        app.MapGet("/{product}/info/{filename}", (string product, string filename) => Results.NotFound());
 
-        app.MapGet("/info/{filename}", (string filename) =>
-            Results.Text(@"Evolution Legacy X 11 (ELX11) - Beta Abierta
-Bienvenido a PES 2011!
-", "text/plain; charset=utf-8", Encoding.UTF8));
+        app.MapGet("/info/{filename}", (string filename) => Results.NotFound());
 
         app.MapFallback((HttpContext http) =>
         {

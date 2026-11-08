@@ -4,17 +4,17 @@
     ViewData["Title"] = "Players";
     ViewData["Nav"] = "players";
 }
-<h1 class="title">Players</h1>
+<h1 class="title">@T["Players_Title"]</h1>
 
 <form class="search" method="get" action="/players" role="search">
-    <input name="q" value="@Model.Q" placeholder="Search by name" maxlength="32" aria-label="Player name">
-    <button type="submit" class="secondary">Search</button>
+    <input name="q" value="@Model.Q" placeholder="@T["Search_Placeholder"]" maxlength="32" aria-label="Player name">
+    <button type="submit" class="secondary">@T["Search_Button"]</button>
 </form>
 
 <section class="panel">
     @if (Model.List.Count == 0)
     {
-        <p class="empty" style="padding: 16px;">@(string.IsNullOrWhiteSpace(Model.Q) ? "No active in-game players yet." : "No player matches that name.")</p>
+        <p class="empty" style="padding: 16px;">@(string.IsNullOrWhiteSpace(Model.Q) ? T["Players_NoActive"] : T["Players_NoMatch"])</p>
     }
     else
     {
@@ -22,9 +22,9 @@
             <table class="list">
                 <thead>
                 <tr>
-                    <th>Player</th>
-                    @if (Model.Ranked) { <th>Div</th><th class="num">Rating</th> }
-                    <th class="num">P</th><th class="num">W–D–L</th><th class="num">Win %</th><th>Last played (UTC)</th>
+                    <th>@T["Col_Player"]</th>
+                    @if (Model.Ranked) { <th>@T["Col_Division"]</th><th class="num">@T["Col_Rating"]</th> }
+                    <th class="num">@T["Col_MatchesShort"]</th><th class="num">@T["Col_Record"]</th><th class="num">@T["Col_WinRate"]</th><th>@T["Col_LastPlayed"]</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -66,7 +66,7 @@
 
 @if (Model.PendingAccounts.Count > 0)
 {
-    <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 24px 0 10px;">Registered Members</h3>
+    <h3 style="font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 24px 0 10px;">@T["Players_RegisteredMembers"]</h3>
     <section class="panel">
         <div class="scroll">
             <table class="list">
@@ -95,9 +95,9 @@
                                 }
                             </span>
                         </td>
-                        <td><span class="tag lime">Registered &middot; Ready to play</span></td>
+                        <td><span class="tag lime">@T["Players_ReadyToPlay"]</span></td>
                         <td class="muted">@acc.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td><a href="/players/@acc.GameId" class="button small secondary" style="padding: 3px 10px; font-size: 11px;">View Profile &rsaquo;</a></td>
+                        <td><a href="/players/@acc.GameId" class="button small secondary" style="padding: 3px 10px; font-size: 11px;">@T["Players_ViewProfile"]</a></td>
                     </tr>
                 }
                 </tbody>

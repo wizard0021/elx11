@@ -4,9 +4,7 @@
 // This file is part of OpenEleven. See the LICENSE file at the repository root.
 
 using System.Globalization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using OpenEleven.Data;
 using OpenEleven.Protocol.Kv;
 using OpenEleven.Server.Configuration;
 using OpenEleven.Server.Dispatch;
@@ -15,7 +13,7 @@ using OpenEleven.Server.State;
 namespace OpenEleven.Server.Handlers;
 
 /// <summary>Persistent live-chat subscription and ROOM/BLOCK delivery.</summary>
-public sealed class TextChatHandlers(ChatTextPolicy textPolicy, GameDbContext db, ILogger<TextChatHandlers> log)
+public sealed class TextChatHandlers(ChatTextPolicy textPolicy, ILogger<TextChatHandlers> log)
 {
     private const ServiceRole ChatRoles = ServiceRole.Menu | ServiceRole.Lobby | ServiceRole.FdLobby;
 
@@ -64,7 +62,7 @@ public sealed class TextChatHandlers(ChatTextPolicy textPolicy, GameDbContext db
     // all, so a rejection from the dispatcher would arrive as a generic result="ERR" that
     // this command's error table does not contain.
     [Command("CMD_SEND_TEXTCHAT", Roles = ChatRoles, RequiredState = SessionState.PlayerSelected)]
-    public async ValueTask<KvMessage[]> SendTextChat(CommandContext ctx)
+    public ValueTask<KvMessage[]> SendTextChat(CommandContext ctx)
     {
         // FUN_0074A1C0 sends scene, channel, statement, list_flg and list_pid, then only
         // requires a normal NOERR acknowledgement for CMD_SEND_TEXTCHAT itself.
@@ -73,9 +71,9 @@ public sealed class TextChatHandlers(ChatTextPolicy textPolicy, GameDbContext db
         // ERR_PLAYERISNOTGAMER, ERR_ROOMSTATNOTMATCH, ERR_ROOMNOTFOUND,
         // ERR_TARGETISNOTLOGIN, ERR_TARGETINGAME, ERR_ISNOTGM and ERR_CHATENABLE.
         if (ctx.Session.Pid <= 0)
-            return [ctx.Fail("ERR_PLAYERISNOTGAMER")];
+            return Reply.Of(ctx.Fail("ERR_PLAYERISNOTGAMER"));
         if (!ctx.Session.ChatEnabled)
-            return [ctx.Fail("ERR_CHATENABLE")];
+            return Reply.Of(ctx.Fail("ERR_CHATENABLE"));
 
         var scene = ParseScene(ctx.Request.GetString("scene"));
         var channel = ParseChannel(ctx.Request.GetString("channel"));
@@ -97,7 +95,7 @@ public sealed class TextChatHandlers(ChatTextPolicy textPolicy, GameDbContext db
 
         if (!textPolicy.TrySanitize(
                 ctx.Request.GetString("statement"), out var statement, out var censored))
-            return [ctx.Fail("ERR_CHATENABLE")];
+            return Reply.Of(ctx.Fail("ERR_CHATENABLE"));
 
         var excludedPids = ReadPidSet(ctx.Request.GetValue("list_pid"));
 
@@ -106,52 +104,14 @@ public sealed class TextChatHandlers(ChatTextPolicy textPolicy, GameDbContext db
         if (!ctx.Session.Push(ctx.Ok()))
             log.LogWarning("Outbound queue full; dropped CMD_SEND_TEXTCHAT ACK for {Session}", ctx.Session);
 
-        // The community channel reaches the members of the community the sender has open, wherever
-        // they are, since community chat is not tied to a lobby or room.
-        // The league channel reaches the participants of the league the sender has open.
-        var communityMembers = channel is TextChatChannel.Community or TextChatChannel.CommunityLeague
-            ? await CommunityMembersAsync(ctx, channel == TextChatChannel.CommunityLeague)
-            : null;
-
         var recipientCount = ctx.Hub.PublishTextChat(
-            ctx.Session, channel ?? TextChatChannel.Block, statement, excludedPids, communityMembers: communityMembers);
+            ctx.Session, channel ?? TextChatChannel.Block, statement, excludedPids);
 
         log.LogInformation(
             "Text chat from pid {Pid} channel={Channel} recipients={Recipients} censored={Censored}",
             ctx.Session.Pid, channel, recipientCount, censored);
 
-        return [];
-    }
-
-    /// <summary>
-    /// The members of the community the sender has open, or with <paramref name="league"/> the
-    /// participants of the league they have open; empty when none is open.
-    /// </summary>
-    private async Task<IReadOnlyList<int>> CommunityMembersAsync(CommandContext ctx, bool league = false)
-    {
-        var sessions = ctx.Hub.SessionsForPid(ctx.Session.Pid);
-        if (league)
-        {
-            var compeId = sessions.Select(s => s.CurrentCompeId).FirstOrDefault(c => c is not null);
-            if (compeId is null)
-            {
-                log.LogWarning("Community league chat from pid {Pid} but no league is open", ctx.Session.Pid);
-                return [];
-            }
-
-            return await db.CommunityLeagueMembers.AsNoTracking().Where(m => m.CompeId == compeId).Select(m => m.Pid)
-                .ToListAsync(ctx.CancellationToken);
-        }
-
-        var id = sessions.Select(s => s.CurrentCommuId).FirstOrDefault(c => c is not null);
-        if (id is null)
-        {
-            log.LogWarning("Community chat from pid {Pid} but no community is open", ctx.Session.Pid);
-            return [];
-        }
-
-        return await db.CommunityMembers.AsNoTracking().Where(m => m.CommuId == id).Select(m => m.Pid)
-            .ToListAsync(ctx.CancellationToken);
+        return Reply.None();
     }
 
     private static TextChatScene CurrentScene(Session session)
@@ -175,7 +135,6 @@ public sealed class TextChatHandlers(ChatTextPolicy textPolicy, GameDbContext db
             "TEAM_QUICK" => TextChatChannel.TeamQuick,
             "COMPETITION" => TextChatChannel.Competition,
             "COMMUNITY" => TextChatChannel.Community,
-            "COMMUNITY_LEAGUE" => TextChatChannel.CommunityLeague,
             _ => null,
         };
 

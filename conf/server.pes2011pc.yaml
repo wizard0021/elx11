@@ -105,6 +105,7 @@ Server:
   #     Description: Data pack 1.00
 
   Protocol:
+    IsolateRoomsByPlatform: true
     ChallengeCode: "00112233445566778899aabbccddeeff"
     PendingLoginLifetimeSeconds: 300
     PlayerSearchLimit: 100

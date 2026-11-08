@@ -27,18 +27,18 @@
         }
         @if (Model.IsOnline)
         {
-            <span class="tag lime"><span class="online"></span>Online Now</span>
+            <span class="tag lime"><span class="online"></span>@T["Profile_OnlineNow"]</span>
         }
         else
         {
-            <span class="tag muted" style="border-color: rgba(255,255,255,.15);"><span class="offline-dot"></span>Offline (@Model.LastSeenText)</span>
+            <span class="tag muted" style="border-color: rgba(255,255,255,.15);"><span class="offline-dot"></span>@T["Profile_Offline"] (@Model.LastSeenText)</span>
         }
     </div>
     <span class="muted" style="display: block; margin-top: 6px;">
-        Member since @Model.MemberSince.ToString("yyyy-MM-dd")
+        @T["Profile_MemberSince"] @Model.MemberSince.ToString("yyyy-MM-dd")
         @if (Model.Profile?.LastPlayedAt is { } at)
         {
-            <text>&middot; Last played: @SiteData.TimeAgo(at) (@SiteData.Date(at) UTC)</text>
+            <text>&middot; @T["Profile_LastPlayed"]: @SiteData.TimeAgo(at) (@SiteData.Date(at) UTC)</text>
         }
     </span>
 </div>
@@ -50,22 +50,22 @@
         <div class="stats">
             @if (Model.Ranked)
             {
-                <div class="stat"><strong>@p.Rating</strong><span>Rating</span></div>
-                <div class="stat"><strong>@(p.Rank > 0 ? $"#{p.Rank}" : "Unranked")</strong><span>Rank Position</span></div>
-                <div class="stat"><strong>@p.Point</strong><span>Points</span></div>
-                <div class="stat"><strong>@p.SeasonPoints</strong><span>Season pts</span></div>
-                <div class="stat"><strong>@p.WeeklyPoints</strong><span>Week pts</span></div>
+                <div class="stat"><strong>@p.Rating</strong><span>@T["Stat_Rating"]</span></div>
+                <div class="stat"><strong>@(p.Rank > 0 ? $"#{p.Rank}" : "Unranked")</strong><span>@T["Stat_RankPosition"]</span></div>
+                <div class="stat"><strong>@p.Point</strong><span>@T["Stat_Points"]</span></div>
+                <div class="stat"><strong>@p.SeasonPoints</strong><span>@T["Stat_SeasonPts"]</span></div>
+                <div class="stat"><strong>@p.WeeklyPoints</strong><span>@T["Stat_WeekPts"]</span></div>
             }
-            <div class="stat"><strong>@s.MatchCount</strong><span>Matches</span></div>
-            <div class="stat"><strong>@s.WinCount</strong><span>Wins</span></div>
-            <div class="stat"><strong>@s.DrawCount</strong><span>Draws</span></div>
-            <div class="stat"><strong>@s.LoseCount</strong><span>Losses</span></div>
-            <div class="stat"><strong>@SiteData.WinPercent(s.WinCount, s.MatchCount)</strong><span>Win %</span></div>
-            <div class="stat"><strong>@s.Goals</strong><span>Goals for</span></div>
-            <div class="stat"><strong>@s.GoalsAgainst</strong><span>Goals against</span></div>
+            <div class="stat"><strong>@s.MatchCount</strong><span>@T["Stat_Matches"]</span></div>
+            <div class="stat"><strong>@s.WinCount</strong><span>@T["Stat_Wins"]</span></div>
+            <div class="stat"><strong>@s.DrawCount</strong><span>@T["Stat_Draws"]</span></div>
+            <div class="stat"><strong>@s.LoseCount</strong><span>@T["Stat_Losses"]</span></div>
+            <div class="stat"><strong>@SiteData.WinPercent(s.WinCount, s.MatchCount)</strong><span>@T["Stat_WinRate"]</span></div>
+            <div class="stat"><strong>@s.Goals</strong><span>@T["Stat_GoalsFor"]</span></div>
+            <div class="stat"><strong>@s.GoalsAgainst</strong><span>@T["Stat_GoalsAgainst"]</span></div>
             <div class="stat"><strong>@s.ContinuousWins</strong><span>Win streak</span></div>
-            <div class="stat"><strong>@s.MaxContinuousWins</strong><span>Best streak</span></div>
-            <div class="stat"><strong>@s.DisconnectCount</strong><span>Disconnects</span></div>
+            <div class="stat"><strong>@s.MaxContinuousWins</strong><span>@T["Stat_BestStreak"]</span></div>
+            <div class="stat"><strong>@s.DisconnectCount</strong><span>@T["Stat_Disconnects"]</span></div>
         </div>
         @if (!string.IsNullOrWhiteSpace(p.Intro))
         {

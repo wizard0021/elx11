@@ -72,6 +72,7 @@ public static class LiveSettingCatalog
         list.AddRange(
         [
             new(rules, "Server:Protocol:RequireSameParaHashToJoin", "Same game data to join a room", LiveSettingKind.Toggle, o => o.Protocol.RequireSameParaHashToJoin, "Keeps modified and unmodified game data apart."),
+            new(rules, "Server:Protocol:IsolateRoomsByPlatform", "Isolate rooms by platform (PC / PS3)", LiveSettingKind.Toggle, o => o.Protocol.IsolateRoomsByPlatform, "PC players only see PC rooms; PS3 players only see PS3 rooms."),
             new(rules, "Server:Protocol:PlayerSearchLimit", "Player search results", LiveSettingKind.Number, o => o.Protocol.PlayerSearchLimit),
             new(rules, "Server:Protocol:PendingLoginLifetimeSeconds", "Login window (seconds)", LiveSettingKind.Number, o => o.Protocol.PendingLoginLifetimeSeconds, "How long a web login lets the game connect."),
         ]);

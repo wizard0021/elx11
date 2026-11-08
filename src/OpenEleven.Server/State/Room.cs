@@ -38,6 +38,12 @@ public sealed class Room
     public DateTimeOffset CreatedAt { get; } = DateTimeOffset.UtcNow;
     public string Status { get; private set; } = "WAITING";
 
+    /// <summary>Platform of the room creator ("PC" or "PS3").</summary>
+    public string Platform { get; set; } = "PC";
+
+    /// <summary>Login para_hash of the room creator.</summary>
+    public string OwnerParaHash { get; set; } = "";
+
     /// <summary>
     /// Match settings from CMD_SET_GAMEENV (half length, injuries, ball, substitutions).
     /// Held verbatim: the client owns this shape, and it has to survive unchanged until
@@ -68,18 +74,6 @@ public sealed class Room
 
     /// <summary>Shared by every member once CMD_GET_MATCHID has been asked (0 = not yet).</summary>
     public int MatchId { get; set; }
-
-    /// <summary>
-    /// The record the last settled match was saved on. <see cref="MatchId"/> has moved on by the time the
-    /// clients' late reports arrive (the next match's id is asked right after the result).
-    /// </summary>
-    public int SettledMatchId { get; set; }
-
-    /// <summary>The league fixture this room plays (CMD_APPLY_COMMU_MATCH); 0 for any other room.</summary>
-    public int LeagueMatchId { get; set; }
-
-    /// <summary>The competition a "To Next Match" pairing plays for; 0 when the room is not one.</summary>
-    public int CompeId { get; set; }
 
     /// <summary>Serializes the first CMD_GET_MATCHID of each player, which opens the match record.</summary>
     public SemaphoreSlim MatchIdGate { get; } = new(1, 1);
@@ -217,7 +211,7 @@ public sealed class Room
                 session.GameEntryNo = NextFreeGameEntryNo();
 
             // The owner hosts the P2P match and takes game slot 0 even when a guest pressed
-            // entry first. PES 2012 matches stalled at kickoff every time a guest held slot 0.
+            // entry first. Matches stalled at kickoff every time a guest held slot 0.
             if (session.Pid == OwnerPid && session.GameEntryNo != 0
                 && _members.FirstOrDefault(m => m.GameEntryNo == 0) is { } first)
                 (first.GameEntryNo, session.GameEntryNo) = (session.GameEntryNo, 0);

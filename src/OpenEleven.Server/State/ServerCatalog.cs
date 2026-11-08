@@ -40,13 +40,26 @@ public sealed class ServerCatalog
         => _options.CurrentValue.Services.Where(s => s.Enabled).ToArray();
 
     /// <summary>
-    /// PES 2011 entry shape (carried as <c>server_list</c>: the parser builds its field paths as
-    /// <c>server_list[%d].%s</c>, <c>pes2011.exe</c> 0x013ba1a4), exactly the four fields it
-    /// requires: <c>svrtype</c>, <c>svraddr</c>, <c>svrport</c>, <c>userCount</c>. The 2010-only
+    /// The key the server list is carried under. PES 2011's response parser builds its field
+    /// paths as <c>server_list[%d].%s</c> (<c>pes2011.exe</c> 0x013ba1a4); the PES 2010 family
+    /// uses <c>svrlist</c>.
+    /// </summary>
+    public string ServerListKey
+        => IsPes2011 ? "server_list" : "svrlist";
+
+    private bool IsPes2011
+        => _options.CurrentValue.GameProfile == GameProfile.Pes2011Pc;
+
+    public IReadOnlyList<KvMessage> BuildServerEntries()
+        => IsPes2011 ? BuildPes2011Entries() : BuildPes2010Entries();
+
+    /// <summary>
+    /// PES 2011 entry shape, exactly the four fields its parser requires:
+    /// <c>svrtype</c>, <c>svraddr</c>, <c>svrport</c>, <c>userCount</c>. The 2010-only
     /// <c>svrname</c>/<c>svrgid</c>/<c>max_player_num</c>/<c>player_num</c> are absent because
     /// that parser never reads them and an unknown key would only risk a format error.
     /// </summary>
-    public IReadOnlyList<KvMessage> BuildPes2011Entries()
+    private IReadOnlyList<KvMessage> BuildPes2011Entries()
         => _options.CurrentValue.Services
             .Where(s => s is { Enabled: true, Advertise: true })
             .OrderBy(s => s.Gid)
@@ -74,8 +87,7 @@ public sealed class ServerCatalog
                 .Set("svrgid", s.Gid))
             .ToArray();
 
-    /// <summary>PES 2010 entry shape, carried as <c>svrlist</c>.</summary>
-    public IReadOnlyList<KvMessage> BuildPes2010Entries()
+    private IReadOnlyList<KvMessage> BuildPes2010Entries()
         => _options.CurrentValue.Services
             .Where(s => s is { Enabled: true, Advertise: true })
             .OrderBy(s => s.Gid)

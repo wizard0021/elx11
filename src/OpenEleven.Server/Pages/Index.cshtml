@@ -16,15 +16,15 @@
         <div class="hero-logo-box">
             <img src="/img/logomain_crop.png" alt="ELX11 - Evolution Legacy X 11" class="hero-main-logo" style="max-width: min(460px, 90%); height: auto; display: block; margin: 10px auto 16px;" />
         </div>
-        <p class="tagline">PES 2011 online multiplayer nostalgia is back. Free, ad-free, fan-powered.</p>
+        <p class="tagline">@T["Hero_Tagline"]</p>
         @if (Model.Announcement.Length > 0)
         {
             <p class="announcement">@Model.Announcement</p>
         }
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-            <a class="button hero-btn" href="/register">Create an account</a>
-            <a class="button hero-btn" href="/ELX11_Launcher_v2.exe" style="background: #10b981; border-color: #10b981;">&#x2B07; Download Launcher</a>
-            <a class="button hero-btn" href="https://discord.gg/2yaF3JBA5X" target="_blank" rel="noopener" style="background: #5865F2; border-color: #5865F2;">Join Discord</a>
+            <a class="button hero-btn" href="/register">@T["Hero_CreateAccount"]</a>
+            <a class="button hero-btn" href="/ELX11_Launcher_v2.exe?v=2.2" style="background: #10b981; border-color: #10b981;">&#x2B07; @T["Hero_DownloadLauncher"]</a>
+            <a class="button hero-btn" href="https://discord.gg/2yaF3JBA5X" target="_blank" rel="noopener" style="background: #5865F2; border-color: #5865F2;">@T["Hero_JoinDiscord"]</a>
         </div>
     </div>
     <div class="hero-char messi" aria-hidden="true">
@@ -33,18 +33,18 @@
 </section>
 
 <div class="tiles" id="totals" data-live>
-    <a class="tile selected" href="/players"><strong>@Model.Online</strong><span>Online now</span></a>
-    <a class="tile" href="#live"><strong>@Model.Live.Count</strong><span>Playing now</span></a>
-    <a class="tile" href="/players"><strong>@Model.Players</strong><span>Players</span></a>
-    <a class="tile" href="/matches"><strong>@Model.Matches</strong><span>Matches</span></a>
+    <a class="tile selected" href="/players"><strong>@Model.Online</strong><span>@T["Tile_OnlineNow"]</span></a>
+    <a class="tile" href="#live"><strong>@Model.Live.Count</strong><span>@T["Tile_PlayingNow"]</span></a>
+    <a class="tile" href="/players"><strong>@Model.Players</strong><span>@T["Tile_Players"]</span></a>
+    <a class="tile" href="/matches"><strong>@Model.Matches</strong><span>@T["Tile_Matches"]</span></a>
 </div>
 
 <div class="grid two">
     <section class="panel" id="live" data-live>
-        <h2><span class="online"></span>Live matches</h2>
+        <h2><span class="online"></span>@T["Panel_LiveMatches"]</h2>
         @if (Model.Live.Count == 0)
         {
-            <p class="empty">Nobody is playing right now.</p>
+            <p class="empty">@T["Panel_NobodyPlaying"]</p>
         }
         else
         {
@@ -82,10 +82,10 @@
     </section>
 
     <section class="panel">
-        <header>Top players <a href="/rankings">Rankings &rsaquo;</a></header>
+        <header>@T["Panel_TopPlayers"] <a href="/rankings">@T["Link_AllRankings"]</a></header>
         @if (Model.Top.Count == 0)
         {
-            <p class="empty">No ranked players yet.</p>
+            <p class="empty">@T["Panel_NoRanked"]</p>
         }
         else
         {
@@ -178,10 +178,10 @@
 <section class="panel roadmap-section" id="roadmap">
     <div class="roadmap-header-row" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
         <div>
-            <h2 style="margin: 0 0 6px;"><span class="online"></span>ELX11 Project Roadmap</h2>
-            <p class="muted" style="margin: 0; font-size: 13.5px;">Evolution Legacy X 11 development milestones, open beta and future vision.</p>
+            <h2 style="margin: 0 0 6px;"><span class="online"></span>@T["Roadmap_Title"]</h2>
+            <p class="muted" style="margin: 0; font-size: 13.5px;">@T["Roadmap_Desc"]</p>
         </div>
-        <span class="tag lime" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700; letter-spacing: 0.05em;">● OPEN BETA ACTIVE</span>
+        <span class="tag lime" style="font-size: 11.5px; padding: 4px 10px; font-weight: 700; letter-spacing: 0.05em;">@T["Roadmap_OpenBetaActive"]</span>
     </div>
 
     <div class="roadmap-grid">
@@ -190,8 +190,8 @@
                 <span class="phase-tag completed">✓ Phase 1 &middot; Core</span>
                 <span class="phase-status-text" style="color: #34d399; font-size: 11px; font-weight: 600;">Completed</span>
             </div>
-            <h3>Core Infrastructure</h3>
-            <p class="desc">Reverse-engineered Konami binary protocol and server backbone built from scratch in .NET 9.</p>
+            <h3>@T["Roadmap_Phase1Title"]</h3>
+            <p class="desc">@T["Roadmap_Phase1Desc"]</p>
             <ul class="roadmap-items">
                 <li><span class="check" style="color: #34d399;">✔</span> <span>XOR & Blowfish-ECB cryptography and packet framing</span></li>
                 <li><span class="check" style="color: #34d399;">✔</span> <span>Gate, Account, Menu & Lobby services (.NET 9)</span></li>
@@ -205,8 +205,8 @@
                 <span class="phase-tag active">★ Phase 2 &middot; Open Beta</span>
                 <span class="phase-status-text" style="color: var(--lime); font-size: 11px; font-weight: 700;">Live Now</span>
             </div>
-            <h3>Cross-Platform & Beta</h3>
-            <p class="desc">Open beta is now live, bringing PC and PlayStation 3 players together on the same server!</p>
+            <h3>@T["Roadmap_Phase2Title"]</h3>
+            <p class="desc">@T["Roadmap_Phase2Desc"]</p>
             <ul class="roadmap-items">
                 <li><span class="check" style="color: var(--lime);">✔</span> <span><strong>Dual-Platform:</strong> PC & PS3 players in the same lobby</span></li>
                 <li><span class="check" style="color: var(--lime);">✔</span> <span>Dynamic platform indicator badges on live matches & profiles</span></li>
@@ -220,8 +220,8 @@
                 <span class="phase-tag in-progress">⚡ Phase 3 &middot; Next</span>
                 <span class="phase-status-text" style="color: #38bdf8; font-size: 11px; font-weight: 600;">In Progress</span>
             </div>
-            <h3>Matchmaking & Cups</h3>
-            <p class="desc">Automated skill-based matchmaking algorithms and official tournament bracket engine.</p>
+            <h3>@T["Roadmap_Phase3Title"]</h3>
+            <p class="desc">@T["Roadmap_Phase3Desc"]</p>
             <ul class="roadmap-items">
                 <li><span class="check" style="color: #38bdf8;">🔄</span> <span>Elo / Rating-based <strong>Quick Match</strong> automated matchmaking queue</span></li>
                 <li><span class="check" style="color: #38bdf8;">🔄</span> <span>Automated Weekend Knockout Cups & community tournaments</span></li>
@@ -236,7 +236,7 @@
                 <span class="phase-status-text" style="color: #c084fc; font-size: 11px; font-weight: 600;">Planned</span>
             </div>
             <h3>Master League Online</h3>
-            <p class="desc">The heartbeat of PES 2011: Full revival of the legendary Master League Online ecosystem.</p>
+            <p class="desc">@T["Roadmap_Phase4Desc"]</p>
             <ul class="roadmap-items">
                 <li><span class="check" style="color: #c084fc;">📋</span> <span><strong>Master League Online (MLO):</strong> Squad building & player contracts</span></li>
                 <li><span class="check" style="color: #c084fc;">📋</span> <span>Dynamic peer-to-peer transfer market & club budget management</span></li>

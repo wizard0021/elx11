@@ -6,7 +6,7 @@
         {
             @if (Model.Page > 1)
             {
-                <a href="@Model.Href(Model.Page - 1)" aria-label="Previous page">&lsaquo;</a>
+                <a href="@Model.Href(Model.Page - 1)" aria-label="@T["Pager_Prev"]">&lsaquo;</a>
             }
             @foreach (var n in Model.Numbers())
             {
@@ -25,12 +25,12 @@
             }
             @if (Model.Page < Model.Pages)
             {
-                <a href="@Model.Href(Model.Page + 1)" aria-label="Next page">&rsaquo;</a>
+                <a href="@Model.Href(Model.Page + 1)" aria-label="@T["Pager_Next"]">&rsaquo;</a>
             }
         }
         @if (Model.SizeHref is { } sizeHref)
         {
-            <span class="sizes">Per page
+            <span class="sizes">@T["Pager_PerPage"]
                 @foreach (var size in SiteData.PageSizes)
                 {
                     <a href="@sizeHref(size)" aria-current="@(size == Model.Size ? "true" : null)">@size</a>

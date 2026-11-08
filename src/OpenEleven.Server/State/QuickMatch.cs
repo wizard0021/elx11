@@ -31,6 +31,7 @@ public sealed record QuickSeeker(Session Session, int Rqid, string Type, int Pla
     public bool CompatibleWith(QuickSeeker other)
         => LangOk(OppLang, other.Lang) && LangOk(other.OppLang, Lang)
            && (!(RatingFilter || other.RatingFilter) || Math.Abs(Rating - other.Rating) <= RatingWindow)
+           && string.Equals(Session.Platform, other.Session.Platform, StringComparison.OrdinalIgnoreCase)
            && (Session.ParaHash.Length == 0 || other.Session.ParaHash.Length == 0
                || string.Equals(Session.ParaHash, other.Session.ParaHash, StringComparison.OrdinalIgnoreCase));
 
@@ -76,7 +77,7 @@ public sealed class QuickGroup(IReadOnlyList<QuickSeeker> members)
     {
         var msg = Offered ? "MSG_QUICK_ACCEPT_MATCH_OFFER_RES" : "MSG_QUICK_MATCHING_RES";
         foreach (var m in Members.Where(m => m.Session != leaver))
-            m.Session.Push(KvMessage.Err(msg, m.Rqid, "ERR_QMATCH_CANCELED"));
+            m.Session.Push(KvMessage.Err(msg, 0, "ERR_QMATCH_CANCELED"));
     }
 }
 

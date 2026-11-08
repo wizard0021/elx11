@@ -20,7 +20,6 @@ public enum TextChatChannel
     TeamQuick,
     Competition,
     Community,
-    CommunityLeague,
 }
 
 public enum TextChatListMode

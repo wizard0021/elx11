@@ -9,6 +9,7 @@ using OpenEleven.Protocol.Kv;
 using OpenEleven.Server.Configuration;
 using OpenEleven.Server.Dispatch;
 using OpenEleven.Server.State;
+using OpenEleven.Server.Web;
 
 namespace OpenEleven.Server.Handlers;
 
@@ -26,7 +27,7 @@ namespace OpenEleven.Server.Handlers;
 /// </list>
 /// Quick match starts from the menu, before any lobby or block, hence RequiredState PlayerSelected.
 /// </summary>
-public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickMatchHandlers> log)
+public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickMatchHandlers> log, MatchEventService? matchEvents = null)
 {
     private const ServiceRole Roles = ServiceRole.Menu;
 
@@ -105,12 +106,29 @@ public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickM
             RatingFilter = Saved(type == "OC_Free" ? 2 : 1) == "YES",
         };
 
-        ctx.Session.Push(ctx.Ok());
+        // Konami client expects MSG_QUICK_MATCHING_START_RES as the direct response to MSG_QUICK_REQ_MATCHING_START.
+        // ctx.Ok() would send MSG_QUICK_REQ_MATCHING_START which corrupts client state machine.
         ctx.Session.Push(MatchingStartResponse(ctx.Rqid));
         log.LogInformation("pid {Pid} searching for a quick match ({Key})", ctx.Session.Pid, seeker.Key);
 
+        matchEvents?.Publish("quick_search", new()
+        {
+            ["player"] = !string.IsNullOrEmpty(ctx.Session.PlayerName) ? ctx.Session.PlayerName : ctx.Session.GameId,
+            ["rating"] = seeker.Rating,
+            ["mode"] = type,
+            ["game_time"] = gameTime
+        });
+
         if (ctx.Hub.QuickMatch.Search(seeker) is { } group)
+        {
+            var pList = group.Members.Select(m => !string.IsNullOrEmpty(m.Session.PlayerName) ? m.Session.PlayerName : m.Session.GameId).ToArray();
+            matchEvents?.Publish("match_found", new()
+            {
+                ["players"] = pList,
+                ["mode"] = seeker.Type
+            });
             await SendMemberNoticeAsync(ctx, group);
+        }
         return [];
     }
 
@@ -122,7 +140,7 @@ public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickM
         ctx.Session.Push(ctx.Ok());
         if (ctx.Hub.QuickMatch.GroupOf(ctx.Session) is { } group && group.Replied(ctx.Session.Pid))
             foreach (var m in group.Members)
-                m.Session.Push(KvMessage.Ok("MSG_QUICK_MATCHING_RES", m.Rqid));
+                m.Session.Push(KvMessage.Ok("MSG_QUICK_MATCHING_RES", 0));
         return Reply.None();
     }
 
@@ -133,23 +151,23 @@ public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickM
     /// </summary>
     [Command("MSG_QUICK_ACCEPT_MATCH_OFFER", Roles = Roles,
         RequiredState = SessionState.PlayerSelected)]
-    public async ValueTask<KvMessage[]> AcceptMatchOffer(CommandContext ctx)
+    public ValueTask<KvMessage[]> AcceptMatchOffer(CommandContext ctx)
     {
         ctx.Session.Push(ctx.Ok());
         var quick = ctx.Hub.QuickMatch;
         if (quick.GroupOf(ctx.Session) is not { } group)
-            return [];
+            return Reply.None();
 
         if (ctx.Request.GetString("result") != "NOERR")
         {
             log.LogInformation("pid {Pid} refused the quick match ({Result})", ctx.Session.Pid, ctx.Request.GetString("result"));
             quick.Leave(ctx.Session);
             group.TellCancelled(ctx.Session);
-            return [];
+            return Reply.None();
         }
 
         if (!group.Accepted(ctx.Session.Pid))
-            return [];
+            return Reply.None();
 
         quick.Complete(group);
         var owner = group.Members[0];
@@ -158,24 +176,14 @@ public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickM
             owner.Type == "OC_Rank" ? "OC_RANKING" : "OC_FREE",
             new KvMessage().Set("type", owner.Type).Set("game_time", owner.GameTime).Set("frrate", owner.Frrate));
 
-        // "To Next Match" pairs two entrants of one competition; its results belong to that competition.
-        if (owner.Type == "COMPE")
-        {
-            var entered = new List<int>();
-            foreach (var m in group.Members)
-                entered.Add((await players.GetAsync(m.Session.Pid, ctx.CancellationToken))?.CompetitionId ?? 0);
-            if (entered.Distinct().Count() == 1)
-                room.CompeId = entered[0];
-        }
-
         var list = group.Members.Select((m, i) => new KvMessage()
             .Set("pid", m.Session.Pid)
             .Set("matching_order", i)
             .Set("frrate", m.Frrate)).ToArray();
         foreach (var m in group.Members)
-            m.Session.Push(KvMessage.Ok("MSG_QUICK_ACCEPT_MATCH_OFFER_RES", m.Rqid).Set("member", list));
+            m.Session.Push(KvMessage.Ok("MSG_QUICK_ACCEPT_MATCH_OFFER_RES", 0).Set("member", list));
         ctx.Hub.PublishQuickMatchRoom(room);
-        return [];
+        return Reply.None();
     }
 
     /// <summary>
@@ -203,9 +211,8 @@ public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickM
 
     /// <summary>
     /// MSG_QUICK_MATCH_MEMBER_NOTICE, one per recipient because the endpoints are per pair
-    /// (Hub.EndpointsFor). pes2012.exe FUN_01105B90 rejects the notice as ERR_CLIENT_SVRFORMAT when
-    /// any member key is missing; pes2011.exe FUN_00fffdf0 the same for any but matching_order, and
-    /// it reads none of the 2012-only keys. YES/NO fields are compared to "YES".
+    /// (Hub.EndpointsFor). FUN_00fffdf0 rejects the notice as ERR_CLIENT_SVRFORMAT when any member
+    /// key other than matching_order is missing; YES/NO fields are compared to "YES".
     /// </summary>
     private async Task SendMemberNoticeAsync(CommandContext ctx, QuickGroup group)
     {
@@ -241,21 +248,13 @@ public sealed class QuickMatchHandlers(IPlayerRepository players, ILogger<QuickM
                     .Set("fd_beginnermark", p?.BeginnerMark == true ? "YES" : "NO")
                     .Set("fd_position_want", p?.PositionWant ?? "")
                     .Set("fd_desired_position", p?.DesiredPositionMask ?? 0)
-                    .Set("division", RankSystem.Label(p?.Division ?? default, ctx.Profile))
+                    .Set("division", RankSystem.Label(p?.Division, ctx.Profile))
                     .Set("rating", p?.Rating ?? 0)
                     .Set("ml_division", "ML_DIVISION_5")
-                    .Set("ml_point", 0)
-                    // FUN_01105B90 requires every one of these keys; a single missing key is
-                    // reported as ERR_CLIENT_SVRFORMAT and the client cancels the match.
-                    .Set("ml_team_name", "")
-                    .Set("ml_base_team_id", 0)
-                    .Set("ml_team_type", "")
-                    .Set("is_chat", "NO")
-                    .Set("is_nice", "NO")
-                    .Set("is_restricted", "NO");
+                    .Set("ml_point", 0);
             }).ToArray();
 
-            viewer.Session.Push(KvMessage.Ok("MSG_QUICK_MATCH_MEMBER_NOTICE", viewer.Rqid)
+            viewer.Session.Push(KvMessage.Ok("MSG_QUICK_MATCH_MEMBER_NOTICE", 0)
                 .Set("is_old_member", "NO")
                 .SetList("member_num", "member", entries));
         }
