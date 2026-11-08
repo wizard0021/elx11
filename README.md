@@ -30,7 +30,7 @@ Matches run directly peer-to-peer (UDP port 5730) between clients, ensuring mini
 
 ## Key Features
 
-- **Cross-Platform Support**: Unified lobby and matchmaking for both PC and PlayStation 3 clients.
+- **Multi-Platform Support**: Unified lobby and matchmaking for both PC and PlayStation 3 clients.
 - **Protocol Emulation**: Complete implementation of the Konami binary protocol framing, XOR cipher, Blowfish-ECB encryption, and key-value message codecs.
 - **Web Hub and Admin Portal**: Built-in ASP.NET Core Razor Pages web interface with player registration, ranking ladders, match histories, live match ticker, and administrative controls.
 - **P2P Coordination**: Reliable NAT and IP/port exchange for direct UDP 5730 peer-to-peer gameplay.
